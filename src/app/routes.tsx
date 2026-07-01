@@ -14,6 +14,7 @@ import { AuthorManagement } from "./components/pages/AuthorManagement";
 import { CouponManagement } from "./components/pages/CouponManagement";
 import { ReportsAnalytics } from "./components/pages/ReportsAnalytics";
 import { SpotlightBannerManagement } from "./components/pages/SpotlightBannerManagement";
+import { RoleManagement } from "./components/pages/RoleManagement";
 
 export const router = createBrowserRouter([
   {
@@ -33,6 +34,7 @@ export const router = createBrowserRouter([
       { path: "pricing-models", Component: PricingModels },
       { path: "inventory", Component: InventoryManagement },
       { path: "finance", Component: FinanceReporting },
+      { path: "rbac", Component: RoleManagement },
       // { path: "consignment", Component: ConsignmentManagement },
     ],
   },

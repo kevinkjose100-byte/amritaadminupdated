@@ -1,3 +1,4 @@
+import { useState, useEffect } from "react";
 import { Outlet, NavLink } from "react-router";
 import logo from "../../imports/image.png";
 import {
@@ -16,7 +17,9 @@ import {
   Feather,
   Tag,
   BarChart3,
-  Sparkles
+  Sparkles,
+  Shield,
+  Lock
 } from "lucide-react";
 
 const navigation = [
@@ -33,10 +36,121 @@ const navigation = [
   { name: "Inventory", path: "/inventory", icon: Archive },
   { name: "Reports", path: "/reports", icon: BarChart3 },
   { name: "Finance", path: "/finance", icon: DollarSign },
+  { name: "Role Management", path: "/rbac", icon: Shield },
   // { name: "Consignment", path: "/consignment", icon: Truck },
 ];
 
+const defaultAdmins = [
+  {
+    id: "admin-1",
+    name: "Rajesh Kumar",
+    email: "rajesh.admin@amritabooks.com",
+    role: "Super Admin",
+    status: "Active",
+    allowedModules: [
+      "Dashboard",
+      "Catalog",
+      "Spotlight Banners",
+      "Authors",
+      "Orders",
+      "Tracking",
+      "Users",
+      "Subscriptions",
+      "Coupons",
+      "Pricing Models",
+      "Inventory",
+      "Reports",
+      "Finance",
+      "Role Management"
+    ]
+  },
+  {
+    id: "admin-2",
+    name: "Priya Sharma",
+    email: "priya.catalog@amritabooks.com",
+    role: "Catalog Manager",
+    status: "Active",
+    allowedModules: ["Dashboard", "Catalog", "Spotlight Banners", "Authors"]
+  },
+  {
+    id: "admin-3",
+    name: "Amit Patel",
+    email: "amit.inventory@amritabooks.com",
+    role: "Inventory Staff",
+    status: "Active",
+    allowedModules: ["Dashboard", "Inventory"]
+  }
+];
+
 export function Layout() {
+  const [activeAdmin, setActiveAdmin] = useState<any>(null);
+  const [adminsList, setAdminsList] = useState<any[]>(defaultAdmins);
+
+  useEffect(() => {
+    const loadSession = () => {
+      const saved = localStorage.getItem("amrita_admin_users");
+      let loadedAdmins = defaultAdmins;
+      if (saved) {
+        try {
+          loadedAdmins = JSON.parse(saved);
+        } catch (e) {}
+      }
+      setAdminsList(loadedAdmins);
+      const savedActive = localStorage.getItem("amrita_active_admin_id");
+      const current = loadedAdmins.find(a => a.id === savedActive) || loadedAdmins[0];
+      setActiveAdmin(current);
+    };
+
+    loadSession();
+
+    window.addEventListener("admin_session_changed", loadSession);
+    return () => {
+      window.removeEventListener("admin_session_changed", loadSession);
+    };
+  }, []);
+
+  if (activeAdmin && activeAdmin.status === "Inactive") {
+    return (
+      <div className="flex h-screen bg-[#F8FAFC] items-center justify-center p-4">
+        <div className="bg-white border border-[#E2E8F0] p-8 rounded-2xl max-w-md shadow-lg text-center space-y-4">
+          <div className="w-16 h-16 rounded-full bg-red-50 text-red-600 flex items-center justify-center mx-auto">
+            <Lock className="w-8 h-8" strokeWidth={2.5} />
+          </div>
+          <h2 className="text-xl font-bold text-[#1E293B]">Account Deactivated</h2>
+          <p className="text-sm text-[#64748B] leading-relaxed">
+            Your administrator account (<strong>{activeAdmin.name}</strong>) has been set to Inactive. Please contact a Super Admin or switch to a different session user to regain access.
+          </p>
+          <div className="pt-2">
+            <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-2 text-left">
+              Switch Session Profile:
+            </label>
+            <select
+              value={activeAdmin.id}
+              onChange={(e) => {
+                localStorage.setItem("amrita_active_admin_id", e.target.value);
+                window.dispatchEvent(new Event("admin_session_changed"));
+              }}
+              className="w-full px-3 py-2 bg-[#F8FAFC] border border-[#CBD5E1] rounded-lg text-xs font-bold text-[#002045] focus:outline-none cursor-pointer"
+            >
+              {adminsList.map((adm) => (
+                <option key={adm.id} value={adm.id}>
+                  {adm.name} ({adm.role})
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Filter navigation links
+  const allowedNavigation = navigation.filter(item => 
+    activeAdmin?.allowedModules?.includes(item.name)
+  );
+
+  const initials = activeAdmin ? activeAdmin.name.split(" ").map((n: any) => n[0]).join("").slice(0, 2).toUpperCase() : "A";
+
   return (
     <div className="flex h-screen bg-[#F8FAFC]">
       <aside className="w-56 bg-white border-r border-[#E2E8F0] flex flex-col flex-shrink-0">
@@ -48,7 +162,7 @@ export function Layout() {
 
         {/* Nav */}
         <nav className="flex-1 overflow-y-auto px-3 py-3 flex flex-col gap-0.5">
-          {navigation.map((item) => (
+          {allowedNavigation.map((item) => (
             <NavLink
               key={item.path}
               to={item.path}
@@ -70,10 +184,12 @@ export function Layout() {
         {/* User bottom */}
         <div className="p-4 border-t border-[#E2E8F0]">
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-full bg-[#002045] flex items-center justify-center text-white text-[12px] font-semibold flex-shrink-0">A</div>
+            <div className="w-8 h-8 rounded-full bg-[#002045] flex items-center justify-center text-white text-[12px] font-semibold flex-shrink-0">
+              {initials}
+            </div>
             <div className="min-w-0">
-              <p className="text-[13px] font-semibold text-[#1E293B] truncate">Admin</p>
-              <p className="text-[11px] text-[#94A3B8] truncate">admin@amritabooks.com</p>
+              <p className="text-[13px] font-semibold text-[#1E293B] truncate">{activeAdmin?.name || "Admin"}</p>
+              <p className="text-[11px] text-[#94A3B8] truncate">{activeAdmin?.email || "admin@amritabooks.com"}</p>
             </div>
           </div>
         </div>
@@ -94,13 +210,34 @@ export function Layout() {
           </div>
 
           <div className="flex items-center gap-3">
+            {/* Quick Profile switcher inside header for high fidelity simulation */}
+            <div className="hidden sm:flex items-center gap-1 bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1 text-[11px] text-[#475569]">
+              <span className="font-bold uppercase tracking-wider text-[9px] text-slate-400">User:</span>
+              <select
+                value={activeAdmin?.id || ""}
+                onChange={(e) => {
+                  localStorage.setItem("amrita_active_admin_id", e.target.value);
+                  window.dispatchEvent(new Event("admin_session_changed"));
+                }}
+                className="font-semibold text-[#002045] bg-transparent border-none focus:outline-none cursor-pointer"
+              >
+                {adminsList.map((adm) => (
+                  <option key={adm.id} value={adm.id}>
+                    {adm.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
             <button className="relative p-2 hover:bg-[#F1F5F9] rounded-lg transition-all">
               <Bell className="w-[18px] h-[18px] text-[#64748B]" />
               <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-[#002045] rounded-full ring-2 ring-white"></span>
             </button>
             <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-full bg-[#002045] flex items-center justify-center text-white text-[12px] font-semibold">A</div>
-              <span className="text-[14px] font-medium text-[#1E293B]">Admin</span>
+              <div className="w-8 h-8 rounded-full bg-[#002045] flex items-center justify-center text-white text-[12px] font-semibold">
+                {initials}
+              </div>
+              <span className="text-[14px] font-medium text-[#1E293B] hidden md:inline">{activeAdmin?.name || "Admin"}</span>
             </div>
           </div>
         </header>
