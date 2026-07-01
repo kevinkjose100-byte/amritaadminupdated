@@ -29,7 +29,6 @@ export function SpotlightBannerManagement() {
   
   // Live Preview Slider State
   const [currentPreviewIndex, setCurrentPreviewIndex] = useState(0);
-  const [previewMode, setPreviewMode] = useState<"desktop" | "mobile">("desktop");
   
   // File upload refs
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -726,26 +725,6 @@ export function SpotlightBannerManagement() {
                 <Eye className="w-5 h-5 text-[#002045]" />
                 Interactive Live Preview (Homepage)
               </h3>
-              
-              {/* Device Mode Switcher */}
-              <div className="flex items-center border border-[#E2E8F0] rounded-lg overflow-hidden bg-slate-50 text-[11px] font-bold">
-                <button
-                  onClick={() => setPreviewMode("desktop")}
-                  className={`px-3 py-1.5 transition-all ${
-                    previewMode === "desktop" ? "bg-[#002045] text-white" : "hover:bg-slate-100 text-[#475569]"
-                  }`}
-                >
-                  Desktop
-                </button>
-                <button
-                  onClick={() => setPreviewMode("mobile")}
-                  className={`px-3 py-1.5 transition-all ${
-                    previewMode === "mobile" ? "bg-[#002045] text-white" : "hover:bg-slate-100 text-[#475569]"
-                  }`}
-                >
-                  Mobile
-                </button>
-              </div>
             </div>
 
             {/* Visual Frame mimicking the User's Website Header / Structure */}
@@ -755,14 +734,12 @@ export function SpotlightBannerManagement() {
               <div className="bg-white px-3 py-2 border-b border-[#E2E8F0] flex items-center justify-between text-[10px] select-none pointer-events-none">
                 <div className="flex items-center gap-2">
                   <div className="text-[12px] font-bold text-[#002045] uppercase tracking-wider">AMRITA BOOKS</div>
-                  {previewMode === "desktop" && (
-                    <div className="flex items-center gap-2 text-[#475569] font-medium ml-3">
-                      <span className="bg-[#E2E8F0] px-2 py-0.5 rounded text-[#002045] font-bold">Home</span>
-                      <span>About Us</span>
-                      <span>Amma's Words</span>
-                      <span>For Children</span>
-                    </div>
-                  )}
+                  <div className="flex items-center gap-2 text-[#475569] font-medium ml-3">
+                    <span className="bg-[#E2E8F0] px-2 py-0.5 rounded text-[#002045] font-bold">Home</span>
+                    <span>About Us</span>
+                    <span>Amma's Words</span>
+                    <span>For Children</span>
+                  </div>
                 </div>
                 <div className="flex items-center gap-2 text-[#64748B]">
                   <span className="w-3.5 h-3.5 rounded-full border border-slate-300 flex items-center justify-center text-[8px]">🔍</span>
@@ -772,11 +749,7 @@ export function SpotlightBannerManagement() {
               </div>
 
               {/* Slider Spotlight Area */}
-              <div 
-                className={`relative flex items-center justify-center transition-all duration-300 ${
-                  previewMode === "desktop" ? "aspect-[2/1] w-full" : "w-[300px] h-[400px] mx-auto"
-                }`}
-              >
+              <div className="relative flex items-center justify-center transition-all duration-300 aspect-[2/1] w-full">
                 {activeBanners.length === 0 ? (
                   <div className="absolute inset-0 bg-slate-900 flex flex-col items-center justify-center text-white text-center p-6">
                     <AlertCircle className="w-8 h-8 text-[#D97706] mb-2" />
@@ -800,42 +773,33 @@ export function SpotlightBannerManagement() {
                         <div className="relative z-10 px-8 py-6 w-full h-full flex items-center justify-between text-white gap-6">
                           
                           {/* Left: Book Cover Image */}
-                          <div className={`flex-shrink-0 flex items-center justify-center ${
-                            previewMode === "desktop" ? "w-1/3" : "w-1/2 mx-auto"
-                          }`}>
+                          <div className="flex-shrink-0 flex items-center justify-center w-1/3">
                             {bookCover ? (
                               <div className="relative group/cover shadow-[0_15px_30px_rgba(0,0,0,0.5)] rounded border border-white/10 overflow-hidden transition-transform duration-300 hover:scale-[1.03]">
                                 <img 
                                   src={bookCover} 
                                   alt={currentBanner.customBookTitle} 
-                                  className={`object-cover object-center ${
-                                    previewMode === "desktop" ? "h-40 w-[110px]" : "h-36 w-[100px]"
-                                  }`} 
+                                  className="object-cover object-center h-40 w-[110px]" 
                                 />
                                 <div className="absolute inset-0 bg-gradient-to-r from-white/10 to-transparent" />
                               </div>
                             ) : (
-                              <div className={`bg-white/10 backdrop-blur-sm border border-white/20 rounded shadow-md flex flex-col items-center justify-center text-white/50 ${
-                                previewMode === "desktop" ? "h-40 w-[110px]" : "h-36 w-[100px]"
-                              }`}>
+                              <div className="bg-white/10 backdrop-blur-sm border border-white/20 rounded shadow-md flex flex-col items-center justify-center text-white/50 h-40 w-[110px]">
                                 <BookOpen className="w-6 h-6 mb-1" />
                                 <span className="text-[9px]">No Cover</span>
                               </div>
                             )}
                           </div>
 
-                          {/* Right: Quotation & CTA (Hidden book cover in mobile to make it clean, or shown together if desktop) */}
-                          {(!editingBanner || previewMode === "desktop") && (
-                            <div className="flex-1 flex flex-col justify-center items-center text-center px-2">
-                              {/* Large Double Quotes */}
-                              <span className="text-[50px] leading-none font-serif text-white/20 -mb-2 select-none">”</span>
-                              
-                              {/* Quote text */}
-                              <blockquote className={`font-serif italic font-medium leading-relaxed mb-3 ${
-                                previewMode === "desktop" ? "text-sm md:text-base max-w-sm" : "text-xs max-w-[180px]"
-                              }`}>
-                                “{currentBanner.quotation}”
-                              </blockquote>
+                          {/* Right: Quotation & CTA */}
+                          <div className="flex-1 flex flex-col justify-center items-center text-center px-2">
+                            {/* Large Double Quotes */}
+                            <span className="text-[50px] leading-none font-serif text-white/20 -mb-2 select-none">”</span>
+                            
+                            {/* Quote text */}
+                            <blockquote className="font-serif italic font-medium leading-relaxed mb-3 text-sm md:text-base max-w-sm">
+                              “{currentBanner.quotation}”
+                            </blockquote>
 
                               {/* Author / Citations */}
                               <div className="mb-4">
@@ -856,9 +820,7 @@ export function SpotlightBannerManagement() {
                                 {currentBanner.ctaLabel} <span className="text-[11px] leading-none">→</span>
                               </a>
                             </div>
-                          )}
-
-                        </div>
+                          </div>
 
                         {/* Navigation Arrows */}
                         {activeBanners.length > 1 && (
