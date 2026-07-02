@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Search, Eye, Edit2, RotateCcw } from "lucide-react";
 import { addAuditLog } from "../../utils/auditLogStore";
+import { InvoiceModal } from "../InvoiceModal";
 
 type Purchase = {
   id: string;
@@ -188,6 +189,7 @@ export function UserManagement() {
   const [users, setUsers] = useState<User[]>(mockUsers);
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  const [invoicePreviewOrder, setInvoicePreviewOrder] = useState<any | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("All");
   const [regionFilter, setRegionFilter] = useState("All");
@@ -480,15 +482,33 @@ export function UserManagement() {
                             <p className="font-semibold text-xs text-[#1E293B] truncate">{item.title}</p>
                             <p className="text-[10px] text-slate-400 mt-0.5">Order ID: {item.id} • Date: {item.date}</p>
                           </div>
-                          <div className="text-right flex-shrink-0">
+                          <div className="text-right flex-shrink-0 flex flex-col items-end">
                             <p className="font-bold text-xs text-[#1E293B]">₹{item.price.toLocaleString()}</p>
-                            <span className={`inline-block text-[9px] font-bold px-1.5 py-0.25 rounded uppercase tracking-wider mt-1 ${
-                              item.type === "Digital" 
-                                ? "bg-blue-50 text-blue-700 border border-blue-100" 
-                                : "bg-orange-50 text-orange-700 border border-orange-100"
-                            }`}>
-                              {item.type}
-                            </span>
+                            <div className="flex items-center gap-2 mt-1">
+                              <button
+                                type="button"
+                                onClick={() => setInvoicePreviewOrder({
+                                  id: item.id,
+                                  orderNumber: item.id,
+                                  customer: selectedUser.name,
+                                  customerEmail: selectedUser.email,
+                                  createdAt: item.date,
+                                  total: item.price,
+                                  orderType: item.type === "Digital" ? "digital" : "physical",
+                                  orderItems: [{ bookTitle: item.title, language: "English", format: item.type === "Digital" ? "digital" : "physical", quantity: 1, price: item.price }]
+                                })}
+                                className="text-[10px] text-indigo-600 hover:text-indigo-800 hover:underline border-none bg-transparent cursor-pointer font-bold"
+                              >
+                                View Invoice
+                              </button>
+                              <span className={`inline-block text-[9px] font-bold px-1.5 py-0.25 rounded uppercase tracking-wider ${
+                                item.type === "Digital" 
+                                  ? "bg-blue-50 text-blue-700 border border-blue-100" 
+                                  : "bg-orange-50 text-orange-700 border border-orange-100"
+                              }`}>
+                                {item.type}
+                              </span>
+                            </div>
                           </div>
                         </div>
                       ))}
@@ -606,6 +626,14 @@ export function UserManagement() {
             </div>
           </form>
         </div>
+      )}
+
+      {/* Invoice Viewer Modal */}
+      {invoicePreviewOrder && (
+        <InvoiceModal
+          order={invoicePreviewOrder}
+          onClose={() => setInvoicePreviewOrder(null)}
+        />
       )}
     </div>
   );

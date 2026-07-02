@@ -3,6 +3,7 @@ import { useNavigate } from "react-router";
 import { Package, Search, Eye, Truck, ChevronDown, ChevronUp, Plus, X, Trash2, FileText, Upload, Check, MapPin, CheckCircle, Download } from "lucide-react";
 import { RowActionsMenu } from "../RowActionsMenu";
 import { addAuditLog } from "../../utils/auditLogStore";
+import { InvoiceModal } from "../InvoiceModal";
 
 type OrderItem = {
   bookTitle: string;
@@ -344,7 +345,7 @@ type ManualOrderForm = {
   orderType: "physical" | "digital";
   paymentStatus: "paid" | "pending" | "failed";
   items: ManualOrderItem[];
-  invoiceFile: { name: string; size: number; type: string; dataUrl?: string } | null;
+  invoiceNumber: string;
 };
 
 const initialFormState: ManualOrderForm = {
@@ -353,7 +354,7 @@ const initialFormState: ManualOrderForm = {
   orderType: "physical",
   paymentStatus: "paid",
   items: [{ bookId: "", language: "", format: "", quantity: 1, price: 0 }],
-  invoiceFile: null
+  invoiceNumber: ""
 };
 
 export function OrderManagement() {
@@ -619,7 +620,7 @@ export function OrderManagement() {
       createdTime: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       orderItems,
       isManual: true,
-      invoiceFile: manualOrderForm.invoiceFile || undefined
+      invoiceNumber: manualOrderForm.invoiceNumber || undefined
     };
 
     const updatedOrders = [newOrder, ...orders];
@@ -1150,39 +1151,21 @@ export function OrderManagement() {
             {/* Manual Invoice */}
             {selectedOrder.isManual && (
               <div className="mb-8 pb-8 border-b border-border">
-                <h3 className="text-[16px] font-bold leading-[24px] text-[#191c1e] mb-4">Manual Invoice</h3>
-                <div className="flex flex-col gap-3 bg-slate-50 p-4 rounded-lg border border-[#E2E8F0]">
-                  {selectedOrder.invoiceFile ? (
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <FileText className="w-8 h-8 text-[#002045] flex-shrink-0" />
-                        <div className="min-w-0">
-                          <p className="font-semibold text-sm truncate">{selectedOrder.invoiceFile.name}</p>
-                          <p className="text-xs text-muted-foreground">
-                            {(selectedOrder.invoiceFile.size / 1024).toFixed(1)} KB
-                          </p>
-                        </div>
-                      </div>
-                      <button
-                        onClick={() => setInvoicePreviewOrder(selectedOrder)}
-                        className="flex items-center gap-1.5 px-3 py-2 bg-[#002045] text-white rounded hover:opacity-95 transition-colors text-xs font-semibold flex-shrink-0 cursor-pointer"
-                      >
-                        <Eye className="w-3.5 h-3.5" />
-                        View Invoice
-                      </button>
+                <h3 className="text-[16px] font-bold leading-[24px] text-[#191c1e] mb-4">Manual Invoice Details</h3>
+                <div className="flex flex-col gap-3 bg-slate-50 p-4 rounded-lg border border-[#E2E8F0] text-xs">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-muted-foreground uppercase font-bold text-[10px]">Invoice Number</p>
+                      <p className="font-semibold text-slate-800 text-sm mt-0.5">{selectedOrder.invoiceNumber || "N/A"}</p>
                     </div>
-                  ) : (
-                    <div className="flex items-center justify-between">
-                      <p className="text-sm text-muted-foreground">No custom invoice uploaded. Dynamic receipt available.</p>
-                      <button
-                        onClick={() => setInvoicePreviewOrder(selectedOrder)}
-                        className="flex items-center gap-1.5 px-3 py-2 bg-[#002045] text-white rounded hover:opacity-95 transition-colors text-xs font-semibold flex-shrink-0 cursor-pointer"
-                      >
-                        <Eye className="w-3.5 h-3.5" />
-                        View Invoice
-                      </button>
-                    </div>
-                  )}
+                    <button
+                      onClick={() => setInvoicePreviewOrder(selectedOrder)}
+                      className="flex items-center gap-1.5 px-3 py-2 bg-[#002045] text-white rounded hover:opacity-95 transition-colors text-xs font-semibold flex-shrink-0 cursor-pointer"
+                    >
+                      <Eye className="w-3.5 h-3.5" />
+                      View Invoice
+                    </button>
+                  </div>
                 </div>
               </div>
             )}
@@ -2019,47 +2002,16 @@ export function OrderManagement() {
                 </div>
               </div>
 
-              {/* Invoice Upload Container */}
+              {/* Invoice Number Input */}
               <div className="space-y-2 pt-2 border-t border-[#E2E8F0]">
-                <label className="block text-xs font-semibold text-foreground">Upload Manual Invoice</label>
-                <div
-                  className="border-2 border-dashed border-[#D1D5DC] hover:border-[var(--color-institutional-blue)]/50 rounded-lg p-5 text-center bg-[#F8FAFC]/50 hover:bg-[#F8FAFC] transition-all cursor-pointer relative"
-                  onClick={() => fileInputRef.current?.click()}
-                >
-                  <input
-                    type="file"
-                    ref={fileInputRef}
-                    onChange={handleInvoiceUpload}
-                    className="hidden"
-                    accept=".pdf,.png,.jpg,.jpeg"
-                  />
-                  {manualOrderForm.invoiceFile ? (
-                    <div className="flex items-center justify-between bg-white border border-[#E2E8F0] p-3 rounded-lg" onClick={(e) => e.stopPropagation()}>
-                      <div className="flex items-center gap-3 min-w-0">
-                        <div className="w-10 h-10 bg-[var(--color-success-green)]/10 text-[var(--color-success-green)] rounded flex items-center justify-center flex-shrink-0">
-                          <Check className="w-5 h-5" />
-                        </div>
-                        <div className="text-left min-w-0">
-                          <p className="font-semibold text-sm truncate max-w-[280px]">{manualOrderForm.invoiceFile.name}</p>
-                          <p className="text-xs text-muted-foreground">{(manualOrderForm.invoiceFile.size / 1024).toFixed(1)} KB</p>
-                        </div>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={handleRemoveInvoice}
-                        className="p-1.5 hover:bg-red-50 text-red-500 rounded transition-colors cursor-pointer border-none bg-transparent"
-                      >
-                        <X className="w-4 h-4" />
-                      </button>
-                    </div>
-                  ) : (
-                    <div className="flex flex-col items-center justify-center py-2">
-                      <Upload className="w-8 h-8 text-muted-foreground mb-2" />
-                      <p className="text-sm font-semibold text-[#191c1e] mb-1">Click to upload or drag & drop invoice</p>
-                      <p className="text-xs text-muted-foreground">PDF, PNG, or JPG up to 5MB</p>
-                    </div>
-                  )}
-                </div>
+                <label className="block text-xs font-semibold text-foreground uppercase tracking-wider text-slate-500">Invoice Number</label>
+                <input
+                  type="text"
+                  placeholder="e.g. INV/2026/089"
+                  value={manualOrderForm.invoiceNumber}
+                  onChange={(e) => setManualOrderForm(prev => ({ ...prev, invoiceNumber: e.target.value }))}
+                  className="w-full px-3 py-2.5 text-sm bg-card border border-border rounded-lg focus:outline-none focus:border-[var(--color-institutional-blue)]/50"
+                />
               </div>
 
               {/* Order summary / Total display */}
@@ -2097,146 +2049,26 @@ export function OrderManagement() {
 
       {/* Invoice Viewer Modal */}
       {invoicePreviewOrder && (
-        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl max-w-2xl w-full p-8 shadow-2xl relative overflow-y-auto max-h-[92vh]">
-            <div className="flex items-center justify-between border-b border-border pb-4 mb-6">
-              <h2 className="text-[20px] font-semibold text-[#191c1e]">Invoice Viewer</h2>
-              <div className="flex items-center gap-3">
-                <button
-                  onClick={() => window.print()}
-                  className="px-4 py-1.5 border border-[#002045] text-[#002045] rounded hover:bg-[#002045]/5 transition-colors text-xs font-semibold cursor-pointer bg-transparent"
-                >
-                  Print
-                </button>
-                <button
-                  onClick={() => setInvoicePreviewOrder(null)}
-                  className="text-muted-foreground hover:text-foreground text-2xl leading-none cursor-pointer border-none bg-transparent"
-                >
-                  ×
-                </button>
-              </div>
-            </div>
-
-            {/* Premium Invoice Layout */}
-            <div className="border border-border p-6 rounded-lg relative overflow-hidden bg-white shadow-sm print:border-none print:shadow-none">
-              {/* PAID Watermark stamp */}
-              <div className="absolute top-8 right-8 pointer-events-none select-none z-10">
-                {invoicePreviewOrder.paymentStatus === "paid" && (
-                  <div className="border-4 border-emerald-500/30 text-emerald-500/30 font-bold uppercase tracking-widest text-2xl px-4 py-2 rounded-lg transform rotate-12">
-                    PAID
-                  </div>
-                )}
-                {invoicePreviewOrder.paymentStatus === "pending" && (
-                  <div className="border-4 border-amber-500/30 text-amber-500/30 font-bold uppercase tracking-widest text-2xl px-4 py-2 rounded-lg transform rotate-12">
-                    PENDING
-                  </div>
-                )}
-                {invoicePreviewOrder.paymentStatus === "failed" && (
-                  <div className="border-4 border-rose-500/30 text-rose-500/30 font-bold uppercase tracking-widest text-2xl px-4 py-2 rounded-lg transform rotate-12">
-                    FAILED
-                  </div>
-                )}
-              </div>
-
-              {/* Invoice Header */}
-              <div className="flex justify-between items-start mb-8 text-left">
-                <div>
-                  <h1 className="text-xl font-bold text-[#002045] uppercase tracking-wider mb-1">Amrita Books</h1>
-                  <p className="text-[11px] text-muted-foreground font-medium">Spiritual Literature &amp; Scriptural Wisdom</p>
-                  <p className="text-[10px] text-muted-foreground mt-0.5">Amritapuri, Kollam, Kerala, 690525</p>
-                </div>
-                <div className="text-right">
-                  <h2 className="text-md font-bold text-slate-800 uppercase mb-1">Tax Invoice</h2>
-                  <p className="text-xs font-semibold text-[#002045]">{invoicePreviewOrder.orderNumber}</p>
-                </div>
-              </div>
-
-              {/* Custom Uploaded invoice notification */}
-              {invoicePreviewOrder.invoiceFile && (
-                <div className="mb-6 p-2 bg-emerald-50 border border-emerald-200 rounded text-center">
-                  <p className="text-[10px] text-emerald-800 font-semibold">
-                    📄 Original Custom Invoice Uploaded: <strong>{invoicePreviewOrder.invoiceFile.name}</strong>
-                  </p>
-                </div>
-              )}
-
-              {/* Invoice Details Grid */}
-              <div className="grid grid-cols-2 gap-6 mb-8 pb-6 border-b border-dashed border-border text-xs text-left">
-                <div>
-                  <p className="text-muted-foreground font-semibold uppercase mb-1.5">Billed To</p>
-                  <p className="font-bold text-slate-800 text-sm mb-0.5">{invoicePreviewOrder.customer}</p>
-                  <p className="text-muted-foreground">{invoicePreviewOrder.customerEmail}</p>
-                </div>
-                <div className="text-right">
-                  <p className="text-muted-foreground font-semibold uppercase mb-1.5">Invoice Details</p>
-                  <p className="text-slate-800 mb-0.5"><span className="text-muted-foreground">Date:</span> {invoicePreviewOrder.createdAt} {invoicePreviewOrder.createdTime}</p>
-                  <p className="text-slate-800"><span className="text-muted-foreground">Status:</span> {statusConfig[invoicePreviewOrder.status].label}</p>
-                </div>
-              </div>
-
-              {/* Itemized Table */}
-              <table className="w-full text-xs text-left mb-6">
-                <thead>
-                  <tr className="border-b border-border bg-slate-50 text-[10px] font-bold text-slate-600 uppercase">
-                    <th className="py-2.5 px-3">Item Details</th>
-                    <th className="py-2.5 px-3 text-center">Format</th>
-                    <th className="py-2.5 px-3 text-center">Qty</th>
-                    <th className="py-2.5 px-3 text-right">Unit Price</th>
-                    <th className="py-2.5 px-3 text-right text-right">Total</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {invoicePreviewOrder.orderItems?.map((item, idx) => {
-                    const unitPrice = item.price / item.quantity;
-                    return (
-                      <tr key={idx} className="border-b border-border/50 text-slate-700">
-                        <td className="py-3 px-3">
-                          <p className="font-semibold text-slate-800">{item.bookTitle}</p>
-                          <p className="text-[10px] text-muted-foreground mt-0.5">Language: {item.language}</p>
-                        </td>
-                        <td className="py-3 px-3 text-center capitalize">{item.format}</td>
-                        <td className="py-3 px-3 text-center">{item.quantity}</td>
-                        <td className="py-3 px-3 text-right">₹{unitPrice.toLocaleString()}</td>
-                        <td className="py-3 px-3 text-right font-semibold">₹{item.price.toLocaleString()}</td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-
-              {/* Total Calculation Area */}
-              <div className="flex justify-end text-xs">
-                <div className="w-64 space-y-2 border-t border-border pt-4">
-                  <div className="flex justify-between text-muted-foreground">
-                    <span>Subtotal:</span>
-                    <span>₹{invoicePreviewOrder.total.toLocaleString()}</span>
-                  </div>
-                  <div className="flex justify-between text-muted-foreground">
-                    <span>Shipping Charges:</span>
-                    <span className="text-emerald-600 font-medium">FREE</span>
-                  </div>
-                  <div className="flex justify-between text-slate-800 font-bold border-t border-border pt-2 text-sm">
-                    <span>Grand Total:</span>
-                    <span>₹{invoicePreviewOrder.total.toLocaleString()}</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Support note */}
-              <div className="mt-8 pt-6 border-t border-border text-center text-[10px] text-muted-foreground">
-                <p className="font-semibold text-[#002045] mb-1">Amrita Books Official Publications</p>
-                <p>If you have any questions about this invoice, please contact support@amritabooks.org</p>
-              </div>
-            </div>
-
-            <button
-              onClick={() => setInvoicePreviewOrder(null)}
-              className="mt-6 w-full px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-800 font-medium rounded-lg text-sm transition-colors cursor-pointer border-none"
-            >
-              Close
-            </button>
-          </div>
-        </div>
+        <InvoiceModal
+          order={{
+            id: invoicePreviewOrder.id,
+            orderNumber: invoicePreviewOrder.orderNumber,
+            customer: invoicePreviewOrder.customer,
+            customerEmail: invoicePreviewOrder.customerEmail,
+            createdAt: invoicePreviewOrder.createdAt,
+            total: invoicePreviewOrder.total,
+            orderType: invoicePreviewOrder.orderType,
+            invoiceNumber: invoicePreviewOrder.invoiceNumber,
+            orderItems: invoicePreviewOrder.orderItems?.map(item => ({
+              bookTitle: item.bookTitle,
+              language: item.language,
+              format: item.format,
+              quantity: item.quantity,
+              price: item.price
+            }))
+          }}
+          onClose={() => setInvoicePreviewOrder(null)}
+        />
       )}
 
       {/* View Tracking Modal */}

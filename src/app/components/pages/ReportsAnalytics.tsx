@@ -12,8 +12,10 @@ import {
   Search, 
   AlertTriangle, 
   CheckCircle,
-  Clock
+  Clock,
+  FileText
 } from "lucide-react";
+import logo from "../../../imports/image.png";
 import { MetricCard } from "../MetricCard";
 import { 
   BarChart, 
@@ -103,6 +105,39 @@ export function ReportsAnalytics() {
   // Export Loading States
   const [exportingType, setExportingType] = useState<"pdf" | "excel" | "csv" | null>(null);
   const [exportProgress, setExportProgress] = useState(0);
+
+  // Print All Invoices States
+  const [isPrintingAll, setIsPrintingAll] = useState(false);
+  const [printOrders, setPrintOrders] = useState<any[]>([]);
+
+  const handleExportAllInvoices = () => {
+    const savedOrders = localStorage.getItem("amrita_orders");
+    let ordersList = [];
+    if (savedOrders) {
+      try {
+        ordersList = JSON.parse(savedOrders);
+      } catch (e) {}
+    }
+    if (ordersList.length === 0) {
+      ordersList = [
+        { id: "1", orderNumber: "AB-2026-8942", customer: "Rajesh Kumar", customerEmail: "rajesh.kumar@example.com", createdAt: "2026-06-24", total: 1350, orderType: "physical", orderItems: [{ bookTitle: "Bhagavad Gita", language: "Hindi", format: "physical", quantity: 3, price: 450 }] },
+        { id: "2", orderNumber: "AB-2026-8941", customer: "Priya Sharma", customerEmail: "priya.sharma@example.com", createdAt: "2026-06-23", total: 2250, orderType: "physical", orderItems: [{ bookTitle: "Bhagavad Gita", language: "Tamil", format: "physical", quantity: 5, price: 450 }] },
+        { id: "3", orderNumber: "AB-2026-8940", customer: "Amit Patel", customerEmail: "amit.patel@example.com", createdAt: "2026-06-22", total: 680, orderType: "physical", orderItems: [{ bookTitle: "Upanishads Collection", language: "Tamil", format: "physical", quantity: 1, price: 680 }] }
+      ];
+    }
+    setPrintOrders(ordersList);
+    setIsPrintingAll(true);
+  };
+
+  useEffect(() => {
+    if (isPrintingAll && printOrders.length > 0) {
+      const timer = setTimeout(() => {
+        window.print();
+        setIsPrintingAll(false);
+      }, 500);
+      return () => clearTimeout(timer);
+    }
+  }, [isPrintingAll, printOrders]);
 
   // Set date ranges automatically based on presets
   useEffect(() => {
@@ -447,6 +482,12 @@ export function ReportsAnalytics() {
               className="w-full text-left px-3 py-1.5 hover:bg-[#F8FAFC] transition-colors flex items-center gap-2 text-xs text-[#191c1e] border-none bg-transparent cursor-pointer"
             >
               <Download className="w-3.5 h-3.5 text-slate-500" /> Export CSV Spreadsheet
+            </button>
+            <button 
+              onClick={handleExportAllInvoices}
+              className="w-full text-left px-3 py-1.5 border-t border-slate-100 hover:bg-[#F8FAFC] transition-colors flex items-center gap-2 text-xs text-[#191c1e] border-none bg-transparent cursor-pointer"
+            >
+              <FileText className="w-3.5 h-3.5 text-slate-500" /> Export All Invoices PDF
             </button>
           </div>
         </div>
@@ -928,6 +969,143 @@ export function ReportsAnalytics() {
             </div>
             <span className="text-[10px] font-bold text-slate-500">{exportProgress}% Completed</span>
           </div>
+        </div>
+      )}
+
+      {/* Printable Invoice Pack (Triggered for PDF generation) */}
+      {isPrintingAll && (
+        <div className="hidden print:block bg-white text-slate-900 absolute inset-0 z-[9999] p-0 font-sans">
+          {printOrders.map((order) => {
+            const shipping = order.orderType === "physical" ? 100 : 0;
+            const preTaxAndShipping = order.total - shipping;
+            const subtotal = Math.round((preTaxAndShipping / 1.18) * 100) / 100;
+            const gst = Math.round((preTaxAndShipping - subtotal) * 100) / 100;
+            const invoiceNum = order.invoiceNumber || `INV-${order.orderNumber}`;
+            const gstNumber = "29AMBMA9876F1Z2";
+
+            return (
+              <div key={order.id} className="p-8 space-y-6 bg-white min-h-screen flex flex-col justify-between" style={{ pageBreakAfter: "always" }}>
+                {/* Logo & Header */}
+                <div className="flex justify-between items-start gap-4">
+                  <div className="flex items-center gap-3">
+                    <img src={logo} alt="Amrita Books Logo" className="w-12 h-12 object-contain" />
+                    <div>
+                      <h1 className="text-lg font-bold text-[#002045] uppercase tracking-wide">Amrita Books</h1>
+                      <p className="text-[10px] text-slate-400 leading-tight">Mata Amritanandamayi Math<br/>Amritapuri, Kollam, Kerala - 690525</p>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <h2 className="text-2xl font-extrabold text-[#002045] tracking-tight uppercase">Invoice</h2>
+                    <div className="text-xs space-y-0.5 mt-2">
+                      <p><span className="text-slate-400">Invoice #:</span> <span className="font-semibold">{invoiceNum}</span></p>
+                      <p><span className="text-slate-400">GSTIN:</span> <span className="font-mono font-semibold">{gstNumber}</span></p>
+                      <p><span className="text-slate-400">Date:</span> <span className="font-semibold">{order.createdAt}</span></p>
+                    </div>
+                  </div>
+                </div>
+
+                <hr className="border-slate-100" />
+
+                {/* Billing Info */}
+                <div className="grid grid-cols-2 gap-6 text-xs text-left">
+                  <div>
+                    <p className="text-slate-400 font-bold uppercase tracking-wider mb-1.5">Billed To</p>
+                    <p className="font-bold text-[#1E293B] text-sm">{order.customer}</p>
+                    <p className="text-slate-500 mt-0.5">{order.customerEmail}</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-slate-400 font-bold uppercase tracking-wider mb-1.5">Payment Details</p>
+                    <p className="font-semibold text-slate-700">Online Payment Gateway</p>
+                    <p className="text-slate-400 mt-0.5">Order Ref: {order.orderNumber}</p>
+                  </div>
+                </div>
+
+                {/* Division table */}
+                <div className="border border-slate-100 rounded-xl overflow-hidden bg-slate-50/50">
+                  <table className="w-full text-xs text-left">
+                    <thead>
+                      <tr className="bg-slate-50 text-slate-500 border-b border-slate-100 text-[10px] font-bold uppercase tracking-wider">
+                        <th className="py-2.5 px-3">Item Details</th>
+                        <th className="py-2.5 px-3 text-center">Format</th>
+                        <th className="py-2.5 px-3 text-center">Qty</th>
+                        <th className="py-2.5 px-3 text-right">Unit Price</th>
+                        <th className="py-2.5 px-3 text-right">Total</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100 bg-white">
+                      {order.orderItems && order.orderItems.length > 0 ? (
+                        order.orderItems.map((item: any, i: number) => (
+                          <tr key={i} className="text-slate-700">
+                            <td className="p-3 font-semibold text-slate-850">
+                              {item.bookTitle} <span className="text-[10px] text-slate-400">({item.language})</span>
+                            </td>
+                            <td className="p-3 text-center capitalize text-slate-650">{item.format}</td>
+                            <td className="p-3 text-center text-slate-650">{item.quantity}</td>
+                            <td className="p-3 text-right text-slate-650">₹{item.price.toLocaleString()}</td>
+                            <td className="p-3 text-right font-semibold text-slate-850">₹{(item.price * item.quantity).toLocaleString()}</td>
+                          </tr>
+                        ))
+                      ) : (
+                        <tr className="text-slate-700">
+                          <td className="p-3 font-semibold text-slate-850">
+                            {order.orderType === "subscription" ? "Amrita Books Reading Subscription" : "General Bookstore Order"}
+                          </td>
+                          <td className="p-3 text-center capitalize text-slate-650">{order.orderType}</td>
+                          <td className="p-3 text-center text-slate-650">1</td>
+                          <td className="p-3 text-right text-slate-650">₹{preTaxAndShipping.toLocaleString()}</td>
+                          <td className="p-3 text-right font-semibold text-slate-855">₹{preTaxAndShipping.toLocaleString()}</td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* Pricing Totals Section */}
+                <div className="flex justify-end text-xs">
+                  <div className="w-64 space-y-2 border-t border-slate-100 pt-3">
+                    <div className="flex justify-between text-slate-500">
+                      <span>Subtotal (Excl. Tax)</span>
+                      <span>₹{subtotal.toLocaleString()}</span>
+                    </div>
+                    <div className="flex justify-between text-slate-500">
+                      <span>GST (18%)</span>
+                      <span>₹{gst.toLocaleString()}</span>
+                    </div>
+                    <div className="flex justify-between text-slate-500">
+                      <span>Shipping Fees</span>
+                      <span>₹{shipping.toLocaleString()}</span>
+                    </div>
+                    <div className="flex justify-between text-base font-extrabold text-[#002045] pt-2 border-t border-slate-100">
+                      <span>Total Amount</span>
+                      <span>₹{order.total.toLocaleString()}</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Footer Note */}
+                <div className="text-center pt-6 text-[10px] text-slate-400 border-t border-slate-50 mt-auto">
+                  <p>Thank you for supporting spiritual publications. This is a computer generated tax invoice.</p>
+                  <p className="mt-1">For support, email: billing@amritabooks.com</p>
+                </div>
+              </div>
+            );
+          })}
+          
+          <style>{`
+            @media print {
+              body > * {
+                display: none !important;
+              }
+              .hidden.print\\:block {
+                display: block !important;
+                position: absolute !important;
+                left: 0;
+                top: 0;
+                width: 100%;
+                background: white !important;
+              }
+            }
+          `}</style>
         </div>
       )}
     </div>
