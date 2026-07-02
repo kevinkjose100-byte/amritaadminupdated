@@ -1,6 +1,14 @@
 import { useState } from "react";
 import { Search, Eye, Edit2, RotateCcw } from "lucide-react";
 
+type Purchase = {
+  id: string;
+  date: string;
+  title: string;
+  price: number;
+  type: "Digital" | "Physical";
+};
+
 type User = {
   id: string;
   name: string;
@@ -11,7 +19,9 @@ type User = {
   orderCount: number;
   totalSpent: number;
   status: "Active" | "Inactive" | "Suspended";
+  subscriptionStatus: "Premium Active" | "Basic Active" | "Expired" | "None";
   lastActive: string;
+  purchaseHistory: Purchase[];
 };
 
 const avatarColors = [
@@ -30,14 +40,141 @@ function Avatar({ name, index }: { name: string; index: number }) {
 }
 
 const mockUsers: User[] = [
-  { id: "1", name: "Rajesh Kumar", email: "rajesh.kumar@example.com", phone: "+91 98765 43210", joinedDate: "2024-03-12", libraryCount: 45, orderCount: 8, totalSpent: 12450, status: "Active", lastActive: "2026-06-20" },
-  { id: "2", name: "Priya Sharma", email: "priya.sharma@example.com", phone: "+91 87654 32109", joinedDate: "2025-01-05", libraryCount: 23, orderCount: 3, totalSpent: 4280, status: "Active", lastActive: "2026-06-18" },
-  { id: "3", name: "Amit Patel", email: "amit.patel@example.com", phone: "+91 76543 21098", joinedDate: "2023-11-20", libraryCount: 67, orderCount: 12, totalSpent: 18900, status: "Active", lastActive: "2026-06-21" },
-  { id: "4", name: "Sneha Reddy", email: "sneha.reddy@example.com", phone: "+91 65432 10987", joinedDate: "2024-07-30", libraryCount: 31, orderCount: 5, totalSpent: 7600, status: "Active", lastActive: "2026-06-15" },
-  { id: "5", name: "Lakshmi Iyer", email: "lakshmi.iyer@example.com", phone: "+91 54321 09876", joinedDate: "2025-03-14", libraryCount: 14, orderCount: 2, totalSpent: 1890, status: "Inactive", lastActive: "2026-04-02" },
-  { id: "6", name: "Venkat Rao", email: "venkat.rao@example.com", phone: "+91 43210 98765", joinedDate: "2023-08-05", libraryCount: 52, orderCount: 9, totalSpent: 14200, status: "Active", lastActive: "2026-06-19" },
-  { id: "7", name: "Meena Krishnan", email: "meena.krishnan@example.com", phone: "+91 32109 87654", joinedDate: "2025-05-20", libraryCount: 8, orderCount: 1, totalSpent: 850, status: "Suspended", lastActive: "2026-02-10" },
-  { id: "8", name: "Arjun Mehta", email: "arjun.mehta@example.com", phone: "+91 21098 76543", joinedDate: "2024-01-18", libraryCount: 39, orderCount: 7, totalSpent: 9340, status: "Active", lastActive: "2026-06-22" },
+  { 
+    id: "1", 
+    name: "Rajesh Kumar", 
+    email: "rajesh.kumar@example.com", 
+    phone: "+91 98765 43210", 
+    joinedDate: "2024-03-12", 
+    libraryCount: 45, 
+    orderCount: 8, 
+    totalSpent: 12450, 
+    status: "Active", 
+    subscriptionStatus: "Premium Active",
+    lastActive: "2026-06-20",
+    purchaseHistory: [
+      { id: "o-101", date: "2026-06-15", title: "Bhagavad Gita (Physical)", price: 499, type: "Physical" },
+      { id: "o-102", date: "2026-04-12", title: "Ramayana (Digital)", price: 399, type: "Digital" },
+      { id: "o-103", date: "2026-02-18", title: "Mahabharata (Physical)", price: 999, type: "Physical" },
+      { id: "o-104", date: "2025-12-05", title: "Upanishads Collection (Physical)", price: 799, type: "Physical" }
+    ]
+  },
+  { 
+    id: "2", 
+    name: "Priya Sharma", 
+    email: "priya.sharma@example.com", 
+    phone: "+91 87654 32109", 
+    joinedDate: "2025-01-05", 
+    libraryCount: 23, 
+    orderCount: 3, 
+    totalSpent: 4280, 
+    status: "Active", 
+    subscriptionStatus: "Basic Active",
+    lastActive: "2026-06-18",
+    purchaseHistory: [
+      { id: "o-201", date: "2026-05-10", title: "Vedas Complete Set (Digital)", price: 799, type: "Digital" },
+      { id: "o-202", date: "2025-03-24", title: "Yoga Sutras (Physical)", price: 449, type: "Physical" }
+    ]
+  },
+  { 
+    id: "3", 
+    name: "Amit Patel", 
+    email: "amit.patel@example.com", 
+    phone: "+91 76543 21098", 
+    joinedDate: "2023-11-20", 
+    libraryCount: 67, 
+    orderCount: 12, 
+    totalSpent: 18900, 
+    status: "Active", 
+    subscriptionStatus: "Premium Active",
+    lastActive: "2026-06-21",
+    purchaseHistory: [
+      { id: "o-301", date: "2026-06-01", title: "Bhagavad Gita (Physical)", price: 499, type: "Physical" },
+      { id: "o-302", date: "2026-03-15", title: "Mahabharata (Physical)", price: 999, type: "Physical" },
+      { id: "o-303", date: "2025-11-10", title: "Upanishads Collection (Digital)", price: 449, type: "Digital" }
+    ]
+  },
+  { 
+    id: "4", 
+    name: "Sneha Reddy", 
+    email: "sneha.reddy@example.com", 
+    phone: "+91 65432 10987", 
+    joinedDate: "2024-07-30", 
+    libraryCount: 31, 
+    orderCount: 5, 
+    totalSpent: 7600, 
+    status: "Active", 
+    subscriptionStatus: "Expired",
+    lastActive: "2026-06-15",
+    purchaseHistory: [
+      { id: "o-401", date: "2025-09-12", title: "Ramayana (Physical)", price: 699, type: "Physical" },
+      { id: "o-402", date: "2024-11-05", title: "Bhagavad Gita (Digital)", price: 299, type: "Digital" }
+    ]
+  },
+  { 
+    id: "5", 
+    name: "Lakshmi Iyer", 
+    email: "lakshmi.iyer@example.com", 
+    phone: "+91 54321 09876", 
+    joinedDate: "2025-03-14", 
+    libraryCount: 14, 
+    orderCount: 2, 
+    totalSpent: 1890, 
+    status: "Inactive", 
+    subscriptionStatus: "None",
+    lastActive: "2026-04-02",
+    purchaseHistory: [
+      { id: "o-501", date: "2025-04-18", title: "Yoga Sutras (Digital)", price: 249, type: "Digital" }
+    ]
+  },
+  { 
+    id: "6", 
+    name: "Venkat Rao", 
+    email: "venkat.rao@example.com", 
+    phone: "+91 43210 98765", 
+    joinedDate: "2023-08-05", 
+    libraryCount: 52, 
+    orderCount: 9, 
+    totalSpent: 14200, 
+    status: "Active", 
+    subscriptionStatus: "Premium Active",
+    lastActive: "2026-06-19",
+    purchaseHistory: [
+      { id: "o-601", date: "2026-05-22", title: "Upanishads Collection (Physical)", price: 799, type: "Physical" }
+    ]
+  },
+  { 
+    id: "7", 
+    name: "Meena Krishnan", 
+    email: "meena.krishnan@example.com", 
+    phone: "+91 32109 87654", 
+    joinedDate: "2025-05-20", 
+    libraryCount: 8, 
+    orderCount: 1, 
+    totalSpent: 850, 
+    status: "Suspended", 
+    subscriptionStatus: "None",
+    lastActive: "2026-02-10",
+    purchaseHistory: [
+      { id: "o-701", date: "2025-06-12", title: "Bhagavad Gita (Digital)", price: 299, type: "Digital" }
+    ]
+  },
+  { 
+    id: "8", 
+    name: "Arjun Mehta", 
+    email: "arjun.mehta@example.com", 
+    phone: "+91 21098 76543", 
+    joinedDate: "2024-01-18", 
+    libraryCount: 39, 
+    orderCount: 7, 
+    totalSpent: 9340, 
+    status: "Active", 
+    subscriptionStatus: "Basic Active",
+    lastActive: "2026-06-22",
+    purchaseHistory: [
+      { id: "o-801", date: "2026-02-28", title: "Ramayana (Physical)", price: 699, type: "Physical" }
+    ]
+  },
 ];
 
 const statusBadge = {
@@ -236,50 +373,152 @@ export function UserManagement() {
 
       {/* Detail modal */}
       {selectedUser && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 animate-[fadeIn_0.2s_ease-out]">
-          <div className="bg-white border border-[#E2E8F0] rounded-xl p-8 w-full max-w-lg shadow-xl">
-            <div className="flex items-center gap-4 mb-6 pb-5 border-b border-[#E2E8F0]">
-              <Avatar name={selectedUser.name} index={users.findIndex(u => u.id === selectedUser.id)} />
-              <div>
-                <h2 className="text-[18px] font-semibold text-[#1E293B]">{selectedUser.name}</h2>
-                <p className="text-[13px] text-[#64748B]">{selectedUser.email}</p>
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-4 mb-6">
-              {[
-                { label: "Phone", value: selectedUser.phone },
-                { label: "Status", value: selectedUser.status },
-                { label: "Joined", value: selectedUser.joinedDate },
-                { label: "Last Active", value: selectedUser.lastActive },
-                { label: "Library Size", value: `${selectedUser.libraryCount} books` },
-                { label: "Orders Placed", value: `${selectedUser.orderCount} orders` },
-                { label: "Total Spent", value: `₹${selectedUser.totalSpent.toLocaleString()}` },
-              ].map(item => (
-                <div key={item.label}>
-                  <p className="text-[11px] font-semibold uppercase tracking-wider text-[#94A3B8]">{item.label}</p>
-                  <p className="mt-1 text-[14px] font-medium text-[#1E293B]">{item.value}</p>
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 animate-[fadeIn_0.2s_ease-out] p-4">
+          <div className="bg-white border border-[#E2E8F0] rounded-2xl p-6 w-full max-w-3xl shadow-2xl overflow-hidden max-h-[90vh] flex flex-col">
+            
+            {/* Header */}
+            <div className="flex items-center justify-between pb-4 border-b border-[#E2E8F0] flex-shrink-0">
+              <div className="flex items-center gap-4">
+                <Avatar name={selectedUser.name} index={users.findIndex(u => u.id === selectedUser.id)} />
+                <div>
+                  <h2 className="text-[18px] font-bold text-[#1E293B] flex items-center gap-2">
+                    {selectedUser.name}
+                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${statusBadge[selectedUser.status]}`}>
+                      {selectedUser.status}
+                    </span>
+                  </h2>
+                  <p className="text-[13px] text-[#64748B]">Customer Profile Overview</p>
                 </div>
-              ))}
+              </div>
+              <button 
+                onClick={() => setSelectedUser(null)} 
+                className="text-2xl text-slate-400 hover:text-slate-600 transition-colors border-none bg-transparent cursor-pointer"
+              >
+                ×
+              </button>
             </div>
-            <div className="flex gap-3 pt-4 border-t border-[#E2E8F0]">
-              <button className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 border border-[#E2E8F0] rounded-lg hover:bg-[#F8FAFC] text-[13px] font-medium text-[#475569] transition-colors">
+
+            {/* Split Content Body */}
+            <div className="flex-1 overflow-y-auto py-5 grid grid-cols-1 md:grid-cols-5 gap-6">
+              
+              {/* Left Column: Contact & Subscription Info (span 2) */}
+              <div className="md:col-span-2 space-y-5">
+                
+                {/* Contact Card */}
+                <div className="bg-[#F8FAFC] border border-[#E2E8F0] rounded-xl p-4 space-y-3.5">
+                  <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider">Contact Information</h4>
+                  <div className="text-xs space-y-2">
+                    <div>
+                      <span className="text-slate-400 block">Email Address</span>
+                      <span className="font-semibold text-[#1E293B] text-[13px] break-all">{selectedUser.email}</span>
+                    </div>
+                    <div>
+                      <span className="text-slate-400 block">Phone Number</span>
+                      <span className="font-semibold text-[#1E293B] text-[13px]">{selectedUser.phone}</span>
+                    </div>
+                    <div>
+                      <span className="text-slate-400 block">Member Since</span>
+                      <span className="font-semibold text-[#1E293B] text-[13px]">{selectedUser.joinedDate}</span>
+                    </div>
+                    <div>
+                      <span className="text-slate-400 block">Last Session Activity</span>
+                      <span className="font-semibold text-[#1E293B] text-[13px]">{selectedUser.lastActive}</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Subscription & Lifetime Stats Card */}
+                <div className="bg-[#F8FAFC] border border-[#E2E8F0] rounded-xl p-4 space-y-3.5">
+                  <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider">Status & Lifetime Value</h4>
+                  <div className="text-xs space-y-2.5">
+                    <div>
+                      <span className="text-slate-400 block">Subscription Status</span>
+                      <span className={`inline-block px-2 py-0.5 border text-[10px] font-bold rounded-full uppercase tracking-wider mt-1 ${
+                        selectedUser.subscriptionStatus.includes("Active")
+                          ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                          : selectedUser.subscriptionStatus === "Expired"
+                          ? "bg-amber-50 text-amber-700 border-amber-200"
+                          : "bg-slate-100 text-slate-500 border-slate-200"
+                      }`}>
+                        {selectedUser.subscriptionStatus}
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-slate-400 block">Lifetime Order Value</span>
+                      <span className="font-bold text-[#1E293B] text-[16px]">₹{selectedUser.totalSpent.toLocaleString()}</span>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2 pt-1 border-t border-[#E2E8F0] mt-1 text-center">
+                      <div>
+                        <span className="text-slate-400 block text-[10px]">Orders Placed</span>
+                        <span className="font-bold text-[#1E293B] text-sm">{selectedUser.orderCount}</span>
+                      </div>
+                      <div>
+                        <span className="text-slate-400 block text-[10px]">Library Size</span>
+                        <span className="font-bold text-[#1E293B] text-sm">{selectedUser.libraryCount} books</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+              </div>
+
+              {/* Right Column: Purchase History (span 3) */}
+              <div className="md:col-span-3 flex flex-col space-y-3.5">
+                <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider flex-shrink-0">Purchase History</h4>
+                
+                <div className="flex-1 border border-[#E2E8F0] rounded-xl overflow-hidden bg-white flex flex-col">
+                  {selectedUser.purchaseHistory.length === 0 ? (
+                    <div className="flex-1 flex flex-col items-center justify-center p-6 text-center text-slate-400 text-xs italic">
+                      No purchases logged for this account.
+                    </div>
+                  ) : (
+                    <div className="divide-y divide-[#F1F5F9] overflow-y-auto max-h-[300px]">
+                      {selectedUser.purchaseHistory.map((item) => (
+                        <div key={item.id} className="p-3.5 flex items-center justify-between gap-4 hover:bg-[#F8FAFC] transition-colors">
+                          <div className="min-w-0">
+                            <p className="font-semibold text-xs text-[#1E293B] truncate">{item.title}</p>
+                            <p className="text-[10px] text-slate-400 mt-0.5">Order ID: {item.id} • Date: {item.date}</p>
+                          </div>
+                          <div className="text-right flex-shrink-0">
+                            <p className="font-bold text-xs text-[#1E293B]">₹{item.price.toLocaleString()}</p>
+                            <span className={`inline-block text-[9px] font-bold px-1.5 py-0.25 rounded uppercase tracking-wider mt-1 ${
+                              item.type === "Digital" 
+                                ? "bg-blue-50 text-blue-700 border border-blue-100" 
+                                : "bg-orange-50 text-orange-700 border border-orange-100"
+                            }`}>
+                              {item.type}
+                            </span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+            </div>
+
+            {/* Footer Buttons */}
+            <div className="flex gap-3 pt-4 border-t border-[#E2E8F0] flex-shrink-0">
+              <button className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 border border-[#E2E8F0] rounded-lg hover:bg-[#F8FAFC] text-[13px] font-medium text-[#475569] transition-colors cursor-pointer bg-white">
                 <RotateCcw className="w-4 h-4" />
                 Reset Password
               </button>
               <button
                 onClick={() => setSelectedUser(null)}
-                className="flex-1 px-4 py-2.5 bg-[#002045] text-white rounded-lg text-[13px] font-semibold hover:bg-[#001b3c] transition-colors"
+                className="flex-1 px-4 py-2.5 bg-[#002045] text-white rounded-lg text-[13px] font-semibold hover:bg-[#001b3c] transition-colors cursor-pointer border-none"
               >
-                Close
+                Close Profile
               </button>
             </div>
+
           </div>
         </div>
       )}
 
       {/* Edit modal */}
       {editingUser && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 animate-[fadeIn_0.2s_ease-out]">
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 animate-[fadeIn_0.2s_ease-out] p-4">
           <form
             onSubmit={(e) => {
               e.preventDefault();
@@ -288,7 +527,7 @@ export function UserManagement() {
             }}
             className="bg-white border border-[#E2E8F0] rounded-xl p-8 w-full max-w-lg shadow-xl"
           >
-            <h2 className="text-[18px] font-semibold text-[#1E293B] mb-6 pb-5 border-b border-[#E2E8F0]">Edit User</h2>
+            <h2 className="text-[18px] font-semibold text-[#1E293B] mb-6 pb-5 border-b border-[#E2E8F0]">Edit User Profile</h2>
             <div className="space-y-4 mb-6">
               <div>
                 <label className="block text-xs font-semibold uppercase tracking-wider text-[#94A3B8] mb-1">Full Name</label>
@@ -320,30 +559,45 @@ export function UserManagement() {
                   className="w-full px-3 py-2.5 text-[14px] text-[#1E293B] bg-white border border-[#D1D5DC] rounded-lg focus:outline-none focus:border-[#002045]/40 focus:ring-2 focus:ring-[#002045]/10"
                 />
               </div>
-              <div>
-                <label className="block text-xs font-semibold uppercase tracking-wider text-[#94A3B8] mb-1">Account Status</label>
-                <select
-                  value={editingUser.status}
-                  onChange={e => setEditingUser({ ...editingUser, status: e.target.value as any })}
-                  className="w-full px-3 py-2.5 text-[14px] text-[#1E293B] bg-white border border-[#D1D5DC] rounded-lg focus:outline-none focus:border-[#002045]/40 focus:ring-2 focus:ring-[#002045]/10"
-                >
-                  <option value="Active">Active</option>
-                  <option value="Inactive">Inactive</option>
-                  <option value="Suspended">Suspended</option>
-                </select>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-semibold uppercase tracking-wider text-[#94A3B8] mb-1">Account Status</label>
+                  <select
+                    value={editingUser.status}
+                    onChange={e => setEditingUser({ ...editingUser, status: e.target.value as any })}
+                    className="w-full px-3 py-2.5 text-[14px] text-[#1E293B] bg-white border border-[#D1D5DC] rounded-lg focus:outline-none focus:border-[#002045]/40 focus:ring-2 focus:ring-[#002045]/10 cursor-pointer"
+                  >
+                    <option value="Active">Active</option>
+                    <option value="Inactive">Inactive</option>
+                    <option value="Suspended">Suspended</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold uppercase tracking-wider text-[#94A3B8] mb-1">Subscription Status</label>
+                  <select
+                    value={editingUser.subscriptionStatus}
+                    onChange={e => setEditingUser({ ...editingUser, subscriptionStatus: e.target.value as any })}
+                    className="w-full px-3 py-2.5 text-[14px] text-[#1E293B] bg-white border border-[#D1D5DC] rounded-lg focus:outline-none focus:border-[#002045]/40 focus:ring-2 focus:ring-[#002045]/10 cursor-pointer"
+                  >
+                    <option value="None">None</option>
+                    <option value="Basic Active">Basic Active</option>
+                    <option value="Premium Active">Premium Active</option>
+                    <option value="Expired">Expired</option>
+                  </select>
+                </div>
               </div>
             </div>
             <div className="flex gap-3 pt-4 border-t border-[#E2E8F0]">
               <button
                 type="button"
                 onClick={() => setEditingUser(null)}
-                className="flex-1 px-4 py-2.5 border border-[#E2E8F0] rounded-lg hover:bg-[#F8FAFC] text-[13px] font-medium text-[#475569] transition-colors"
+                className="flex-1 px-4 py-2.5 border border-[#E2E8F0] rounded-lg hover:bg-[#F8FAFC] text-[13px] font-medium text-[#475569] transition-colors cursor-pointer bg-white"
               >
                 Cancel
               </button>
               <button
                 type="submit"
-                className="flex-1 px-4 py-2.5 bg-[#002045] text-white rounded-lg text-[13px] font-semibold hover:bg-[#001b3c] transition-colors"
+                className="flex-1 px-4 py-2.5 bg-[#002045] text-white rounded-lg text-[13px] font-semibold hover:bg-[#001b3c] transition-colors cursor-pointer border-none"
               >
                 Save Changes
               </button>
