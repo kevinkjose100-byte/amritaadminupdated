@@ -113,6 +113,23 @@ function SearchableDropdown({
   );
 }
 import { getPricingGroups, convertPrice } from "../../utils/pricingStore";
+
+const getStatusBadgeClass = (status?: string) => {
+  switch (status) {
+    case "Draft":
+      return "bg-[#F1F5F9] text-[#475569] border-[#E2E8F0]";
+    case "Review":
+      return "bg-[#FEF3C7] text-[#D97706] border-[#FDE68A]";
+    case "Approved":
+      return "bg-[#DBEAFE] text-[#1D4ED8] border-[#BFDBFE]";
+    case "Published":
+      return "bg-[#DCFCE7] text-[#15803D] border-[#BBF7D0]";
+    case "Archived":
+      return "bg-[#FEE2E2] text-[#B91C1C] border-[#FECACA]";
+    default:
+      return "bg-[#F1F5F9] text-[#475569] border-[#E2E8F0]";
+  }
+};
 import bookCover1 from "../../../imports/screenshot-1.png";
 import bookCover2 from "../../../imports/screenshot-2.png";
 import bookCover3 from "../../../imports/screenshot-3.png";
@@ -155,6 +172,7 @@ type LanguageVariant = {
     salePrice?: number;
     fileUrl?: string;
     ebookProcessing?: EbookProcessing;
+    status?: "Draft" | "Review" | "Approved" | "Published" | "Archived";
   };
   physical?: {
     isbn: string;
@@ -168,6 +186,7 @@ type LanguageVariant = {
     sku: string;
     shippingIndia?: number;
     shippingInternational?: number;
+    status?: "Draft" | "Review" | "Approved" | "Published" | "Archived";
   };
   regionalPrices?: Record<string, {
     digitalPrice?: number;
@@ -231,8 +250,8 @@ export const mockBooks: Book[] = [
         compilerEditor: "Mata Amritanandamayi Math",
         editionNumber: "2nd Revised Edition",
         publicationYear: "2024",
-        digital: { isbn: "978-1-234-56789-0", price: 299 },
-        physical: { isbn: "978-1-234-56789-1", price: 499, stock: 50, weight: 450, length: 210, width: 140, height: 25, sku: "BG-EN-001" },
+        digital: { isbn: "978-1-234-56789-0", price: 299, status: "Published" },
+        physical: { isbn: "978-1-234-56789-1", price: 499, stock: 50, weight: 450, length: 210, width: 140, height: 25, sku: "BG-EN-001", status: "Published" },
       },
       {
         id: "v2",
@@ -242,8 +261,8 @@ export const mockBooks: Book[] = [
         editionNumber: "1st Edition",
         publicationYear: "2022",
         description: "आध्यात्मिक ज्ञान का शाश्वत संदेश",
-        digital: { isbn: "978-1-234-56789-2", price: 299 },
-        physical: { isbn: "978-1-234-56789-3", price: 499, stock: 12, weight: 450, length: 210, width: 140, height: 25, sku: "BG-HI-001" },
+        digital: { isbn: "978-1-234-56789-2", price: 299, status: "Published" },
+        physical: { isbn: "978-1-234-56789-3", price: 499, stock: 12, weight: 450, length: 210, width: 140, height: 25, sku: "BG-HI-001", status: "Published" },
       },
     ],
   },
@@ -1061,7 +1080,12 @@ export function CatalogManagement() {
                                         <div className="grid grid-cols-2 gap-5">
                                           {variant.digital && (
                                             <div className="space-y-2">
-                                              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Digital Version ({activeGroup.name})</p>
+                                              <div className="flex items-center gap-2">
+                                                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Digital Version ({activeGroup.name})</p>
+                                                <span className={`px-1.5 py-0.5 border text-[9px] font-bold rounded-full uppercase tracking-wider ${getStatusBadgeClass(variant.digital.status)}`}>
+                                                  {variant.digital.status || "Draft"}
+                                                </span>
+                                              </div>
                                               <div className="space-y-1.5 text-sm">
                                                 <p><span className="text-muted-foreground">ISBN:</span> <span className="font-mono">{variant.digital.isbn}</span></p>
                                                 <p><span className="text-muted-foreground">Price:</span> {dPrice !== undefined ? `${activeGroup.currencySymbol}${dPrice.toLocaleString()}` : "Not Set"}</p>
@@ -1073,7 +1097,12 @@ export function CatalogManagement() {
                                           )}
                                           {variant.physical && (
                                             <div className="space-y-2">
-                                              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Physical Version ({activeGroup.name})</p>
+                                              <div className="flex items-center gap-2">
+                                                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Physical Version ({activeGroup.name})</p>
+                                                <span className={`px-1.5 py-0.5 border text-[9px] font-bold rounded-full uppercase tracking-wider ${getStatusBadgeClass(variant.physical.status)}`}>
+                                                  {variant.physical.status || "Draft"}
+                                                </span>
+                                              </div>
                                               <div className="space-y-1.5 text-sm">
                                                 <p><span className="text-muted-foreground">ISBN:</span> <span className="font-mono">{variant.physical.isbn}</span></p>
                                                 <p><span className="text-muted-foreground">SKU:</span> <span className="font-mono">{variant.physical.sku}</span></p>
@@ -1620,6 +1649,20 @@ function SimplifiedLanguageVariantCard({
   const [isCoverDragging, setIsCoverDragging] = useState(false);
   const [isEbookDragging, setIsEbookDragging] = useState(false);
 
+  const isDigitalPriceOk = (variant.digital?.price || 0) > 0;
+  const isDigitalCoverOk = !!variant.coverUrl;
+  const isDigitalDescOk = (variant.description?.trim().length || 0) > 10;
+  const isDigitalIsbnOk = !!variant.digital?.isbn;
+  const allDigitalChecksPassed = isDigitalPriceOk && isDigitalCoverOk && isDigitalDescOk && isDigitalIsbnOk;
+
+  const isPhysicalPriceOk = (variant.physical?.price || 0) > 0;
+  const isPhysicalCoverOk = !!variant.coverUrl;
+  const isPhysicalDescOk = (variant.description?.trim().length || 0) > 10;
+  const isPhysicalIsbnOk = !!variant.physical?.isbn;
+  const isPhysicalSkuOk = !!variant.physical?.sku;
+  const isPhysicalWeightOk = (variant.physical?.weight || 0) > 0;
+  const allPhysicalChecksPassed = isPhysicalPriceOk && isPhysicalCoverOk && isPhysicalDescOk && isPhysicalIsbnOk && isPhysicalSkuOk && isPhysicalWeightOk;
+
   const handleCoverDragOver = (e: React.DragEvent) => {
     e.preventDefault();
     setIsCoverDragging(true);
@@ -2098,6 +2141,77 @@ function SimplifiedLanguageVariantCard({
 
             {variant.digital && (
               <div className="space-y-4">
+                {/* Approval Workflow & Pre-Publish Checklist for Digital */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-white p-4 border border-[#E2E8F0] rounded-xl shadow-sm mb-4">
+                  {/* Workflow steps */}
+                  <div className="space-y-2">
+                    <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">Digital Approval Status</p>
+                    <div className="flex flex-wrap gap-1">
+                      {["Draft", "Review", "Approved", "Published", "Archived"].map((step) => {
+                        const currentStatus = variant.digital?.status || "Draft";
+                        const isActive = currentStatus === step;
+                        const isDisabled = step === "Published" && !allDigitalChecksPassed;
+                        
+                        return (
+                          <button
+                            key={step}
+                            type="button"
+                            disabled={isDisabled && currentStatus !== "Published"}
+                            onClick={() => onUpdate({ digital: { ...variant.digital!, status: step as any } })}
+                            className={`px-2.5 py-1.5 rounded text-[11px] font-bold border flex items-center gap-1 transition-all cursor-pointer ${
+                              isActive
+                                ? "bg-[#002045] text-white border-[#002045]"
+                                : isDisabled
+                                ? "bg-slate-50 text-slate-300 border-slate-200 cursor-not-allowed"
+                                : "bg-white hover:bg-slate-50 text-slate-600 border-slate-200"
+                            }`}
+                            title={isDisabled ? "Resolve all checklist items to publish" : ""}
+                          >
+                            {isActive && <CheckCircle2 className="w-3.5 h-3.5 text-white" />}
+                            {step}
+                          </button>
+                        );
+                      })}
+                    </div>
+                    {!allDigitalChecksPassed && (variant.digital?.status === "Review" || variant.digital?.status === "Draft") && (
+                      <p className="text-[10px] text-amber-600 font-medium leading-none mt-1">
+                        * Resolve all checklist requirements to enable publishing.
+                      </p>
+                    )}
+                  </div>
+
+                  {/* Checklist */}
+                  <div className="space-y-2 border-t md:border-t-0 md:border-l border-[#E2E8F0] pt-3 md:pt-0 md:pl-4">
+                    <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">Pre-Publish Requirements</p>
+                    <div className="grid grid-cols-2 gap-2 text-xs">
+                      <div className="flex items-center gap-1.5">
+                        <span className={isDigitalPriceOk ? "text-green-600 font-bold" : "text-red-500 font-bold"}>
+                          {isDigitalPriceOk ? "✓" : "✗"}
+                        </span>
+                        <span className="text-slate-600">Base Price &gt; 0</span>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <span className={isDigitalCoverOk ? "text-green-600 font-bold" : "text-amber-500 font-bold"}>
+                          {isDigitalCoverOk ? "✓" : "⚠"}
+                        </span>
+                        <span className="text-slate-600">Cover Image</span>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <span className={isDigitalDescOk ? "text-green-600 font-bold" : "text-red-500 font-bold"}>
+                          {isDigitalDescOk ? "✓" : "✗"}
+                        </span>
+                        <span className="text-slate-600">Description Set</span>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <span className={isDigitalIsbnOk ? "text-green-600 font-bold" : "text-red-500 font-bold"}>
+                          {isDigitalIsbnOk ? "✓" : "✗"}
+                        </span>
+                        <span className="text-slate-600">Digital ISBN</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
                 <div className="grid grid-cols-3 gap-4">
                   <div>
                     <label className="block text-sm font-medium mb-2">Digital ISBN</label>
@@ -2335,6 +2449,89 @@ function SimplifiedLanguageVariantCard({
 
             {variant.physical && (
               <div className="space-y-4">
+                {/* Approval Workflow & Pre-Publish Checklist for Physical */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-white p-4 border border-[#E2E8F0] rounded-xl shadow-sm mb-4">
+                  {/* Workflow steps */}
+                  <div className="space-y-2">
+                    <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">Physical Approval Status</p>
+                    <div className="flex flex-wrap gap-1">
+                      {["Draft", "Review", "Approved", "Published", "Archived"].map((step) => {
+                        const currentStatus = variant.physical?.status || "Draft";
+                        const isActive = currentStatus === step;
+                        const isDisabled = step === "Published" && !allPhysicalChecksPassed;
+                        
+                        return (
+                          <button
+                            key={step}
+                            type="button"
+                            disabled={isDisabled && currentStatus !== "Published"}
+                            onClick={() => onUpdate({ physical: { ...variant.physical!, status: step as any } })}
+                            className={`px-2.5 py-1.5 rounded text-[11px] font-bold border flex items-center gap-1 transition-all cursor-pointer ${
+                              isActive
+                                ? "bg-[#002045] text-white border-[#002045]"
+                                : isDisabled
+                                ? "bg-slate-50 text-slate-300 border-slate-200 cursor-not-allowed"
+                                : "bg-white hover:bg-slate-50 text-slate-600 border-slate-200"
+                            }`}
+                            title={isDisabled ? "Resolve all checklist items to publish" : ""}
+                          >
+                            {isActive && <CheckCircle2 className="w-3.5 h-3.5 text-white" />}
+                            {step}
+                          </button>
+                        );
+                      })}
+                    </div>
+                    {!allPhysicalChecksPassed && (variant.physical?.status === "Review" || variant.physical?.status === "Draft") && (
+                      <p className="text-[10px] text-amber-600 font-medium leading-none mt-1">
+                        * Resolve all checklist requirements to enable publishing.
+                      </p>
+                    )}
+                  </div>
+
+                  {/* Checklist */}
+                  <div className="space-y-2 border-t md:border-t-0 md:border-l border-[#E2E8F0] pt-3 md:pt-0 md:pl-4">
+                    <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">Pre-Publish Requirements</p>
+                    <div className="grid grid-cols-2 gap-2 text-xs">
+                      <div className="flex items-center gap-1.5">
+                        <span className={isPhysicalPriceOk ? "text-green-600 font-bold" : "text-red-500 font-bold"}>
+                          {isPhysicalPriceOk ? "✓" : "✗"}
+                        </span>
+                        <span className="text-slate-600">Base Price &gt; 0</span>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <span className={isPhysicalCoverOk ? "text-green-600 font-bold" : "text-amber-500 font-bold"}>
+                          {isPhysicalCoverOk ? "✓" : "⚠"}
+                        </span>
+                        <span className="text-slate-600">Cover Image</span>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <span className={isPhysicalDescOk ? "text-green-600 font-bold" : "text-red-500 font-bold"}>
+                          {isPhysicalDescOk ? "✓" : "✗"}
+                        </span>
+                        <span className="text-slate-600">Description Set</span>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <span className={isPhysicalIsbnOk ? "text-green-600 font-bold" : "text-red-500 font-bold"}>
+                          {isPhysicalIsbnOk ? "✓" : "✗"}
+                        </span>
+                        <span className="text-slate-600">Physical ISBN</span>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <span className={isPhysicalSkuOk ? "text-green-600 font-bold" : "text-red-500 font-bold"}>
+                          {isPhysicalSkuOk ? "✓" : "✗"}
+                        </span>
+                        <span className="text-slate-600">SKU Code Set</span>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <span className={isPhysicalWeightOk ? "text-green-600 font-bold" : "text-red-500 font-bold"}>
+                          {isPhysicalWeightOk ? "✓" : "✗"}
+                        </span>
+                        <span className="text-slate-600">Weight &gt; 0</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium mb-2">Physical ISBN</label>
