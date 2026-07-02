@@ -113,6 +113,7 @@ function SearchableDropdown({
   );
 }
 import { getPricingGroups, convertPrice } from "../../utils/pricingStore";
+import { addAuditLog } from "../../utils/auditLogStore";
 
 const getStatusBadgeClass = (status?: string) => {
   switch (status) {
@@ -550,7 +551,7 @@ export const mockBooks: Book[] = [
 ];
 
 export function CatalogManagement() {
-  const [books] = useState(mockBooks);
+  const [books, setBooks] = useState(mockBooks);
   const [selectedBooks, setSelectedBooks] = useState<string[]>([]);
   const [expandedRow, setExpandedRow] = useState<string | null>(null);
   const [activeVariantTab, setActiveVariantTab] = useState<string>("");
@@ -653,8 +654,35 @@ export function CatalogManagement() {
               lastUpdated: new Date().toISOString().split('T')[0]
             };
             setBooks([...books, newBook]);
+            addAuditLog("Catalog", `Created new catalog book item: "${newBook.title}"`, "success");
           } else {
+            const oldBook = books.find(b => b.id === updatedBook.id);
+            let changes: string[] = [];
+            if (oldBook) {
+              if (oldBook.title !== updatedBook.title) changes.push(`title changed to "${updatedBook.title}"`);
+              if (oldBook.author !== updatedBook.author) changes.push(`author changed to "${updatedBook.author}"`);
+              if (oldBook.pageCount !== updatedBook.pageCount) changes.push(`page count changed to ${updatedBook.pageCount}`);
+              updatedBook.variants.forEach((v) => {
+                const oldV = oldBook.variants.find(ov => ov.id === v.id);
+                if (oldV) {
+                  if (oldV.digital?.price !== v.digital?.price) {
+                    changes.push(`${v.language} Digital price changed from ₹${oldV.digital?.price || 0} to ₹${v.digital?.price || 0}`);
+                  }
+                  if (oldV.physical?.price !== v.physical?.price) {
+                    changes.push(`${v.language} Physical price changed from ₹${oldV.physical?.price || 0} to ₹${v.physical?.price || 0}`);
+                  }
+                  if (oldV.digital?.status !== v.digital?.status) {
+                    changes.push(`${v.language} Digital status changed to "${v.digital?.status || "Draft"}"`);
+                  }
+                  if (oldV.physical?.status !== v.physical?.status) {
+                    changes.push(`${v.language} Physical status changed to "${v.physical?.status || "Draft"}"`);
+                  }
+                }
+              });
+            }
             setBooks(books.map(b => b.id === updatedBook.id ? updatedBook : b));
+            const changeDesc = changes.length > 0 ? `: ${changes.join(", ")}` : " (no fields modified)";
+            addAuditLog("Catalog", `Edited book details for "${updatedBook.title}"${changeDesc}`, "info");
           }
           setEditingBook(null);
         }}

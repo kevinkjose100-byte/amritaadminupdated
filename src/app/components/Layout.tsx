@@ -19,7 +19,8 @@ import {
   BarChart3,
   Sparkles,
   Shield,
-  Lock
+  Lock,
+  FileText
 } from "lucide-react";
 
 const navigation = [
@@ -37,6 +38,7 @@ const navigation = [
   { name: "Reports", path: "/reports", icon: BarChart3 },
   { name: "Finance", path: "/finance", icon: DollarSign },
   { name: "Role Management", path: "/rbac", icon: Shield },
+  { name: "Audit Logs", path: "/audit-logs", icon: FileText },
   // { name: "Consignment", path: "/consignment", icon: Truck },
 ];
 
@@ -61,7 +63,8 @@ const defaultAdmins = [
       "Inventory",
       "Reports",
       "Finance",
-      "Role Management"
+      "Role Management",
+      "Audit Logs"
     ]
   },
   {

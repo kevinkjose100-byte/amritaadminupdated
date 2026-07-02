@@ -7,7 +7,7 @@ import { Book, mockBooks } from "./CatalogManagement";
 import { 
   SpotlightBanner, PRESET_BACKDROPS, getBanners, saveBanners 
 } from "../../utils/bannerStore";
-
+import { addAuditLog } from "../../utils/auditLogStore";
 import bookCover1 from "../../../imports/screenshot-1.png";
 import bookCover2 from "../../../imports/screenshot-2.png";
 import bookCover3 from "../../../imports/screenshot-3.png";
@@ -62,8 +62,10 @@ export function SpotlightBannerManagement() {
   // Handle banner deletion
   const handleDelete = (id: string) => {
     if (confirm("Are you sure you want to delete this spotlight banner?")) {
+      const target = banners.find(b => b.id === id);
       const filtered = banners.filter(b => b.id !== id);
       updateBannersList(filtered);
+      addAuditLog("Banners", `Deleted spotlight banner slide "${target?.title || id}"`, "error");
       if (currentPreviewIndex >= filtered.length && filtered.length > 0) {
         setCurrentPreviewIndex(filtered.length - 1);
       }
@@ -148,6 +150,7 @@ export function SpotlightBannerManagement() {
     }
     
     updateBannersList(updated);
+    addAuditLog("Banners", `${exists ? "Updated details for" : "Created new"} spotlight banner slide: "${editingBanner.title}" (Linked Book ID: ${editingBanner.bookId})`, "success");
     setEditingBanner(null);
   };
 

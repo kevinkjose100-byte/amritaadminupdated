@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { AlertTriangle, ChevronDown, ChevronUp, Search, Edit, X, Download } from "lucide-react";
 import { MetricCard } from "../MetricCard";
+import { addAuditLog } from "../../utils/auditLogStore";
 
 type InventoryItem = {
   sku: string;
@@ -124,6 +125,11 @@ export function InventoryManagement() {
     if (!editingItem) return;
     setInventory(prev => prev.map(item => {
       if (item.sku === editingItem.sku) {
+        addAuditLog(
+          "Inventory",
+          `Updated stock levels for "${item.title}" (${item.language}) SKU ${item.sku}: Stock changed from ${item.stock} to ${editStock}, Low stock threshold set to ${editThreshold}`,
+          "info"
+        );
         return {
           ...item,
           stock: editStock,

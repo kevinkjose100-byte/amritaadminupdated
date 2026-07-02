@@ -15,6 +15,7 @@ import { CouponManagement } from "./components/pages/CouponManagement";
 import { ReportsAnalytics } from "./components/pages/ReportsAnalytics";
 import { SpotlightBannerManagement } from "./components/pages/SpotlightBannerManagement";
 import { RoleManagement } from "./components/pages/RoleManagement";
+import { AuditLogs } from "./components/pages/AuditLogs";
 
 export const router = createBrowserRouter([
   {
@@ -35,6 +36,7 @@ export const router = createBrowserRouter([
       { path: "inventory", Component: InventoryManagement },
       { path: "finance", Component: FinanceReporting },
       { path: "rbac", Component: RoleManagement },
+      { path: "audit-logs", Component: AuditLogs },
       // { path: "consignment", Component: ConsignmentManagement },
     ],
   },

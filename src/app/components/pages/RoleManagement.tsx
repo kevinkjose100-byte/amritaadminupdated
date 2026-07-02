@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { Shield, Users, Lock, Check, Edit2, Trash2, Plus, X, Key, HelpCircle } from "lucide-react";
+import { addAuditLog } from "../../utils/auditLogStore";
 
 export type AdminUser = {
   id: string;
@@ -108,10 +109,15 @@ export function RoleManagement() {
   };
 
   const handleToggleStatus = (id: string) => {
+    const targetAdmin = admins.find(a => a.id === id);
+    const newStatus = targetAdmin?.status === "Active" ? "Inactive" : "Active";
     const updated = admins.map(a => 
       a.id === id ? { ...a, status: a.status === "Active" ? "Inactive" as const : "Active" as const } : a
     );
     saveAdminsList(updated);
+    if (targetAdmin) {
+      addAuditLog("Roles", `Toggled account status for administrator "${targetAdmin.name}" to ${newStatus}`, "warning");
+    }
   };
 
   const handleDeleteAdmin = (id: string, name: string) => {
@@ -122,6 +128,7 @@ export function RoleManagement() {
     if (confirm(`Are you sure you want to delete administrator "${name}"?`)) {
       const filtered = admins.filter(a => a.id !== id);
       saveAdminsList(filtered);
+      addAuditLog("Roles", `Deleted administrator "${name}"`, "error");
     }
   };
 
@@ -146,6 +153,7 @@ export function RoleManagement() {
 
     const updated = admins.map(a => a.id === editingAdmin.id ? editingAdmin : a);
     saveAdminsList(updated);
+    addAuditLog("Roles", `Updated profile/permissions for administrator "${editingAdmin.name}" (${editingAdmin.role}). Access modules: [${editingAdmin.allowedModules.join(", ")}]`, "info");
     setEditingAdmin(null);
   };
 
@@ -165,6 +173,7 @@ export function RoleManagement() {
 
     const updated = [...admins, newAdmin];
     saveAdminsList(updated);
+    addAuditLog("Roles", `Created new administrator account "${newAdmin.name}" with role "${newAdmin.role}"`, "success");
     setShowAddModal(false);
     setEditingAdmin(null);
   };

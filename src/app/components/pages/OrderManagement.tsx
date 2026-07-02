@@ -2,6 +2,7 @@ import { useState, useRef } from "react";
 import { useNavigate } from "react-router";
 import { Package, Search, Eye, Truck, ChevronDown, ChevronUp, Plus, X, Trash2, FileText, Upload, Check, MapPin, CheckCircle, Download } from "lucide-react";
 import { RowActionsMenu } from "../RowActionsMenu";
+import { addAuditLog } from "../../utils/auditLogStore";
 
 type OrderItem = {
   bookTitle: string;
@@ -624,6 +625,7 @@ export function OrderManagement() {
     const updatedOrders = [newOrder, ...orders];
     setOrders(updatedOrders);
     localStorage.setItem("amrita_orders", JSON.stringify(updatedOrders));
+    addAuditLog("Orders", `Created manual order ${newOrder.orderNumber} for customer "${newOrder.customerName}" (Total: ₹${newOrder.total})`, "success");
 
     setManualOrderForm(initialFormState);
     setFormErrors({});
@@ -662,6 +664,7 @@ export function OrderManagement() {
 
     setOrders(updatedOrders);
     localStorage.setItem("amrita_orders", JSON.stringify(updatedOrders));
+    addAuditLog("Orders", `Updated courier tracking details for order ${trackingOrderForEdit?.orderNumber} (Courier: ${courier}, Tracking #: ${trackingInput})`, "info");
 
     if (selectedOrder && selectedOrder.id === trackingOrderForEdit?.id) {
       setSelectedOrder({
@@ -1581,6 +1584,7 @@ export function OrderManagement() {
                       });
                       setOrders(updatedOrders);
                       localStorage.setItem("amrita_orders", JSON.stringify(updatedOrders));
+                      addAuditLog("Orders", `Processed full refund of ₹${(selectedOrder.total - (selectedOrder.refundedAmount || 0)).toLocaleString()} for order ${selectedOrder.orderNumber}. Reason: ${refundReason || 'Not specified'}`, "warning");
 
                       const freshOrder = updatedOrders.find(o => o.id === selectedOrder.id);
                       if (freshOrder) setSelectedOrder(freshOrder);
@@ -1784,6 +1788,7 @@ export function OrderManagement() {
                       });
                       setOrders(updatedOrders);
                       localStorage.setItem("amrita_orders", JSON.stringify(updatedOrders));
+                      addAuditLog("Orders", `Processed partial refund of ₹${totalRefund.toLocaleString()} (Refunded ${itemCount} items) for order ${selectedOrder.orderNumber}. Reason: ${refundReason || 'Not specified'}`, "warning");
 
                       const freshOrder = updatedOrders.find(o => o.id === selectedOrder.id);
                       if (freshOrder) setSelectedOrder(freshOrder);

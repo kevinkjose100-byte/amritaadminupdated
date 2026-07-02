@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Search, Eye, Edit2, RotateCcw } from "lucide-react";
+import { addAuditLog } from "../../utils/auditLogStore";
 
 type Purchase = {
   id: string;
@@ -523,6 +524,7 @@ export function UserManagement() {
             onSubmit={(e) => {
               e.preventDefault();
               setUsers(users.map(u => u.id === editingUser.id ? editingUser : u));
+              addAuditLog("Users", `Updated customer profile for "${editingUser.name}" (Email: ${editingUser.email}, Status: ${editingUser.status}, Subscription: ${editingUser.subscriptionStatus})`, "info");
               setEditingUser(null);
             }}
             className="bg-white border border-[#E2E8F0] rounded-xl p-8 w-full max-w-lg shadow-xl"
