@@ -145,6 +145,10 @@ type LanguageVariant = {
   title?: string;
   description?: string;
   coverUrl?: string;
+  translator?: string;
+  compilerEditor?: string;
+  editionNumber?: string;
+  publicationYear?: string;
   digital?: {
     isbn: string;
     price: number;
@@ -198,6 +202,7 @@ export type Book = {
   seriesName?: string;
   seriesVolume?: string;
   relatedBookIds?: string[];
+  pageCount?: number;
 };
 
 export const mockBooks: Book[] = [
@@ -217,16 +222,25 @@ export const mockBooks: Book[] = [
     seriesName: "Amma's Teachings Collection",
     seriesVolume: "1",
     relatedBookIds: ["2", "3"],
+    pageCount: 350,
     variants: [
       {
         id: "v1",
         language: "English",
+        translator: "Swami Amritaswarupananda Puri",
+        compilerEditor: "Mata Amritanandamayi Math",
+        editionNumber: "2nd Revised Edition",
+        publicationYear: "2024",
         digital: { isbn: "978-1-234-56789-0", price: 299 },
         physical: { isbn: "978-1-234-56789-1", price: 499, stock: 50, weight: 450, length: 210, width: 140, height: 25, sku: "BG-EN-001" },
       },
       {
         id: "v2",
         language: "Hindi",
+        translator: "Swami Ramakrishnananda Puri",
+        compilerEditor: "Mata Amritanandamayi Math",
+        editionNumber: "1st Edition",
+        publicationYear: "2022",
         description: "आध्यात्मिक ज्ञान का शाश्वत संदेश",
         digital: { isbn: "978-1-234-56789-2", price: 299 },
         physical: { isbn: "978-1-234-56789-3", price: 499, stock: 12, weight: 450, length: 210, width: 140, height: 25, sku: "BG-HI-001" },
@@ -923,6 +937,30 @@ export function CatalogManagement() {
                       <tr className="bg-muted/5 border-b border-[#E2E8F0]">
                         <td colSpan={13} className="px-6 py-6">
                           <div className="max-w-6xl mx-auto space-y-4">
+                            {/* Book Overview Info Bar */}
+                            <div className="bg-white border border-[#E2E8F0] rounded-xl p-4 flex flex-wrap gap-6 text-xs text-muted-foreground shadow-sm">
+                              <div>
+                                <span className="font-semibold uppercase tracking-wider text-[9px] block mb-0.5 text-slate-400">Author</span>
+                                <span className="font-bold text-foreground text-sm">{book.author}</span>
+                              </div>
+                              {book.pageCount !== undefined && (
+                                <div>
+                                  <span className="font-semibold uppercase tracking-wider text-[9px] block mb-0.5 text-slate-400">Page Count</span>
+                                  <span className="font-bold text-foreground text-sm">{book.pageCount} pages</span>
+                                </div>
+                              )}
+                              {book.seriesName && (
+                                <div>
+                                  <span className="font-semibold uppercase tracking-wider text-[9px] block mb-0.5 text-slate-400">Series</span>
+                                  <span className="font-bold text-foreground text-sm">{book.seriesName} {book.seriesVolume ? `(Vol. ${book.seriesVolume})` : ''}</span>
+                                </div>
+                              )}
+                              <div>
+                                <span className="font-semibold uppercase tracking-wider text-[9px] block mb-0.5 text-slate-400">Status</span>
+                                <span className="font-bold text-foreground text-sm capitalize">{book.status}</span>
+                              </div>
+                            </div>
+
                             <div className="flex border-b border-[#E2E8F0] mb-2 overflow-x-auto pb-px">
                               {book.variants.map((v) => {
                                 const isActive = activeVariantTab === v.id || (!activeVariantTab && book.variants[0].id === v.id);
@@ -958,10 +996,41 @@ export function CatalogManagement() {
                                         {variant.physical && (
                                           <span className="px-2 py-0.5 bg-[var(--color-saffron)]/10 text-[var(--color-saffron-dark)] border border-[var(--color-saffron)]/20 rounded text-xs">
                                             Physical
-                          </span>
+                                          </span>
                                         )}
                                       </div>
                                     </div>
+
+                                    {/* Variant Metadata: Translator, Compiler/Editor, Edition, Publication Year */}
+                                    {(variant.translator || variant.compilerEditor || variant.editionNumber || variant.publicationYear) && (
+                                      <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 mb-4 pb-4 border-b border-[#E2E8F0] text-xs">
+                                        {variant.translator && (
+                                          <div>
+                                            <span className="text-muted-foreground block mb-0.5 font-medium uppercase tracking-wider text-[10px]">Translator</span>
+                                            <span className="font-semibold text-foreground">{variant.translator}</span>
+                                          </div>
+                                        )}
+                                        {variant.compilerEditor && (
+                                          <div>
+                                            <span className="text-muted-foreground block mb-0.5 font-medium uppercase tracking-wider text-[10px]">Compiler / Editor</span>
+                                            <span className="font-semibold text-foreground">{variant.compilerEditor}</span>
+                                          </div>
+                                        )}
+                                        {variant.editionNumber && (
+                                          <div>
+                                            <span className="text-muted-foreground block mb-0.5 font-medium uppercase tracking-wider text-[10px]">Edition Number</span>
+                                            <span className="font-semibold text-foreground">{variant.editionNumber}</span>
+                                          </div>
+                                        )}
+                                        {variant.publicationYear && (
+                                          <div>
+                                            <span className="text-muted-foreground block mb-0.5 font-medium uppercase tracking-wider text-[10px]">Publication Year</span>
+                                            <span className="font-semibold text-foreground">{variant.publicationYear}</span>
+                                          </div>
+                                        )}
+                                      </div>
+                                    )}
+
                                     {(() => {
                                       const groups = getPricingGroups();
                                       const activeGroup = groups.find(g => g.id === activeRegionId) || groups[0];
@@ -1757,6 +1826,50 @@ function SimplifiedLanguageVariantCard({
             />
           </div>
 
+          {/* Translator, Compiler/Editor, Edition Number, Publication Year */}
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div>
+              <label className="block text-sm font-medium mb-2">Translator</label>
+              <input
+                type="text"
+                value={variant.translator || ""}
+                onChange={(e) => onUpdate({ translator: e.target.value })}
+                placeholder="e.g. Swami Amritaswarupananda"
+                className="w-full px-4 py-2 bg-card border border-border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-institutional-blue)]/25"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-2">Compiler / Editor</label>
+              <input
+                type="text"
+                value={variant.compilerEditor || ""}
+                onChange={(e) => onUpdate({ compilerEditor: e.target.value })}
+                placeholder="e.g. Mata Amritanandamayi Math"
+                className="w-full px-4 py-2 bg-card border border-border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-institutional-blue)]/25"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-2">Edition Number</label>
+              <input
+                type="text"
+                value={variant.editionNumber || ""}
+                onChange={(e) => onUpdate({ editionNumber: e.target.value })}
+                placeholder="e.g. 2nd Revised Edition"
+                className="w-full px-4 py-2 bg-card border border-border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-institutional-blue)]/25"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-2">Publication Year</label>
+              <input
+                type="text"
+                value={variant.publicationYear || ""}
+                onChange={(e) => onUpdate({ publicationYear: e.target.value })}
+                placeholder="e.g. 2024"
+                className="w-full px-4 py-2 bg-card border border-border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-institutional-blue)]/25"
+              />
+            </div>
+          </div>
+
           {/* Regional Pricing Infrastructure Grid */}
           <div className="bg-card border border-[#E2E8F0] rounded-xl p-6 space-y-4 shadow-[0_1px_3px_rgba(0,0,0,0.06),0_1px_2px_rgba(0,0,0,0.04)]">
             <div className="flex items-center justify-between border-b border-[#E2E8F0] pb-3">
@@ -2372,6 +2485,7 @@ function BookEditor({ book, onClose, onSave, allBooks }: { book: Book; onClose: 
   const [volumeNumber, setVolumeNumber] = useState(book.seriesVolume || "");
   const [relatedIds, setRelatedIds] = useState<string[]>(book.relatedBookIds || []);
   const [isFeatured, setIsFeatured] = useState(book.featured || false);
+  const [pageCount, setPageCount] = useState<number | string>(book.pageCount !== undefined ? book.pageCount : "");
 
   const [authors, setAuthors] = useState<string[]>(() => {
     const unique = new Set<string>(["Amma", "Swami Amritaswarupananda Puri", "Swami Ramakrishnananda Puri"]);
@@ -2499,6 +2613,7 @@ function BookEditor({ book, onClose, onSave, allBooks }: { book: Book; onClose: 
       status,
       variants,
       defaultLanguage: variants.find(v => v.id === defaultLanguageId)?.language || book.defaultLanguage || "English",
+      pageCount: pageCount !== "" ? Number(pageCount) : undefined,
       lastUpdated: new Date().toISOString().split('T')[0]
     };
     onSave(updatedBook);
@@ -2621,6 +2736,18 @@ function BookEditor({ book, onClose, onSave, allBooks }: { book: Book; onClose: 
                       onChange={(val) => setSelectedAuthor(val)}
                       placeholder="Select Author..."
                       emptyLabel="No authors found"
+                    />
+                  </div>
+
+                  {/* Page Count */}
+                  <div>
+                    <label className="block text-sm font-medium mb-2 text-foreground">Page Count (Pages)</label>
+                    <input
+                      type="number"
+                      value={pageCount}
+                      onChange={(e) => setPageCount(e.target.value !== "" ? Number(e.target.value) : "")}
+                      placeholder="e.g. 248"
+                      className="w-full px-4 py-2.5 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-[var(--color-institutional-blue)]/25 bg-background text-foreground text-sm"
                     />
                   </div>
 
