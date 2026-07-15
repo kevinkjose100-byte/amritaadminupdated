@@ -24,7 +24,7 @@ type ConsignmentEntry = {
 export function ConsignmentManagement() {
   const [manualTracking, setManualTracking] = useState("");
   const [manualOrder, setManualOrder] = useState("");
-  const [courier, setCourier] = useState<"india-post" | "dhl">("india-post");
+  const [courier, setCourier] = useState<"india-post" | "dtdc">("india-post");
   const [validationError, setValidationError] = useState("");
   const [entries, setEntries] = useState<ConsignmentEntry[]>([]);
   const [isHelpExpanded, setIsHelpExpanded] = useState(true);
@@ -33,13 +33,16 @@ export function ConsignmentManagement() {
   const handleManualSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (courier === "india-post" && !manualTracking.endsWith("IN")) {
-      setValidationError("Invalid tracking number. India Post tracking numbers must end with 'IN'");
-      return;
+    if (courier === "india-post") {
+      const indiaPostRegex = /^[A-Z0-9]{11}IN$/i;
+      if (!indiaPostRegex.test(manualTracking)) {
+        setValidationError("Invalid tracking number. India Post tracking numbers must be a 13-character alphanumeric string ending in 'IN'");
+        return;
+      }
     }
 
-    if (courier === "dhl" && manualTracking.length < 10) {
-      setValidationError("Invalid DHL tracking number. Please enter a valid tracking number");
+    if (courier === "dtdc" && !/^[Nn]\d{8}$/.test(manualTracking)) {
+      setValidationError("Invalid DTDC reference number. DTDC reference numbers must start with 'N' followed by 8 digits (e.g., N21996707)");
       return;
     }
 
@@ -76,7 +79,7 @@ export function ConsignmentManagement() {
         // Add mock CSV entries
         setEntries([
           { orderNumber: "AMR-9988", trackingNumber: "RN887766554IN", status: "valid" },
-          { orderNumber: "AMR-9989", trackingNumber: "9876543210", status: "valid" },
+          { orderNumber: "AMR-9989", trackingNumber: "N21996707", status: "valid" },
           ...entries
         ]);
         alert(`CSV file "${file.name}" uploaded successfully!`);
@@ -96,7 +99,7 @@ export function ConsignmentManagement() {
       if (file) {
         setEntries([
           { orderNumber: "AMR-9988", trackingNumber: "RN887766554IN", status: "valid" },
-          { orderNumber: "AMR-9989", trackingNumber: "9876543210", status: "valid" },
+          { orderNumber: "AMR-9989", trackingNumber: "N21996707", status: "valid" },
           ...entries
         ]);
         alert(`CSV file "${file.name}" uploaded successfully!`);
@@ -146,20 +149,20 @@ export function ConsignmentManagement() {
                       <select
                         value={courier}
                         onChange={(e) => {
-                          setCourier(e.target.value as "india-post" | "dhl");
+                          setCourier(e.target.value as "india-post" | "dtdc");
                           setManualTracking("");
                           setValidationError("");
                         }}
                         className="w-full px-4 py-3 bg-input-background rounded-xl border border-border focus:outline-none focus:ring-2 focus:ring-[var(--color-institutional-blue)]/25 focus:border-[var(--color-institutional-blue)] transition-all text-sm"
                       >
-                        <option value="india-post">India Post</option>
-                        <option value="dhl">DHL</option>
+                        <option value="india-post">India Post (Normal Shipping)</option>
+                        <option value="dtdc">DTDC Express (Premium Shipping)</option>
                       </select>
                     </div>
 
                     <div>
                       <label className="block mb-2 text-sm font-medium text-foreground">
-                        {courier === "india-post" ? "India Post" : "DHL"} Tracking Number
+                        {courier === "india-post" ? "India Post" : "DTDC Express"} Consignment/Tracking Number
                       </label>
                       <input
                         type="text"
@@ -168,7 +171,7 @@ export function ConsignmentManagement() {
                           setManualTracking(e.target.value);
                           setValidationError("");
                         }}
-                        placeholder={courier === "india-post" ? "e.g., RN123456789IN" : "e.g., 1234567890"}
+                        placeholder={courier === "india-post" ? "e.g., RN123456789IN" : "e.g., N21996707"}
                         className={`w-full px-4 py-3 bg-input-background rounded-xl border ${
                           validationError ? "border-destructive" : "border-border"
                         } focus:outline-none focus:ring-2 ${
@@ -234,7 +237,7 @@ export function ConsignmentManagement() {
                     <pre className="text-[10px] font-mono text-muted-foreground leading-normal">
                       order_number,courier,tracking_number{"\n"}
                       AMR-2847,india-post,RN123456789IN{"\n"}
-                      AMR-2848,dhl,1234567890
+                      AMR-2848,dtdc,N21996707
                     </pre>
                   </div>
                   <button 
@@ -323,8 +326,8 @@ export function ConsignmentManagement() {
                 <div className="flex items-start gap-3 p-3 bg-card border border-[#E2E8F0] rounded-lg hover:bg-[#F8FAFC] hover:border-[var(--color-institutional-blue)]/30 transition-all">
                   <Truck className="w-5 h-5 text-[var(--color-saffron)] mt-0.5 flex-shrink-0" />
                   <div>
-                    <h4 className="font-bold text-sm text-foreground">DHL Express Format</h4>
-                    <p className="text-xs text-muted-foreground mt-0.5">Standard 10-digit numeric tracking codes.</p>
+                    <h4 className="font-bold text-sm text-foreground">DTDC Express Format</h4>
+                    <p className="text-xs text-muted-foreground mt-0.5">Consignment numbers must start with 'N' followed by 8 digits (e.g., N21996707).</p>
                   </div>
                 </div>
 

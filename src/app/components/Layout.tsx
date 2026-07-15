@@ -39,6 +39,7 @@ const navigation = [
   { name: "Finance", path: "/finance", icon: DollarSign },
   { name: "Role Management", path: "/rbac", icon: Shield },
   { name: "Audit Logs", path: "/audit-logs", icon: FileText },
+  { name: "Push Notifications", path: "/notifications", icon: Bell },
   // { name: "Consignment", path: "/consignment", icon: Truck },
 ];
 
@@ -64,7 +65,8 @@ const defaultAdmins = [
       "Reports",
       "Finance",
       "Role Management",
-      "Audit Logs"
+      "Audit Logs",
+      "Push Notifications"
     ]
   },
   {
@@ -73,7 +75,7 @@ const defaultAdmins = [
     email: "priya.catalog@amritabooks.com",
     role: "Catalog Manager",
     status: "Active",
-    allowedModules: ["Dashboard", "Catalog", "Spotlight Banners", "Authors"]
+    allowedModules: ["Dashboard", "Catalog", "Spotlight Banners", "Authors", "Push Notifications"]
   },
   {
     id: "admin-3",
@@ -96,6 +98,22 @@ export function Layout() {
       if (saved) {
         try {
           loadedAdmins = JSON.parse(saved);
+          // Auto-migration: ensure Push Notifications is in allowedModules for existing profiles
+          let migrated = false;
+          loadedAdmins = loadedAdmins.map((adm: any) => {
+            if (adm.role === "Super Admin" && !adm.allowedModules.includes("Push Notifications")) {
+              adm.allowedModules.push("Push Notifications");
+              migrated = true;
+            }
+            if (adm.role === "Catalog Manager" && !adm.allowedModules.includes("Push Notifications")) {
+              adm.allowedModules.push("Push Notifications");
+              migrated = true;
+            }
+            return adm;
+          });
+          if (migrated) {
+            localStorage.setItem("amrita_admin_users", JSON.stringify(loadedAdmins));
+          }
         } catch (e) {}
       }
       setAdminsList(loadedAdmins);

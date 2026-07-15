@@ -111,7 +111,7 @@ export function TrackingSystem() {
       });
     }
     
-    if (order.status === "delivered") {
+    if (order.status === "delivered" || order.status === "completed") {
       timeline.push({
         timestamp: `${order.createdAt} 18:45`,
         location: "Sorting Hub",
@@ -136,36 +136,80 @@ export function TrackingSystem() {
       trackingNumber: order.trackingNumber || "",
       orderNumber: order.orderNumber,
       customer: order.customer,
-      currentStatus: order.status === "delivered" ? "delivered" : "in-transit",
+      currentStatus: (order.status === "delivered" || order.status === "completed") ? "delivered" : "in-transit",
       timeline
     };
   };
 
-  // Read orders from localStorage
-  const savedOrdersStr = localStorage.getItem("amrita_orders");
-  const savedOrders = savedOrdersStr ? JSON.parse(savedOrdersStr) : [];
-
-  // Build combined list of shipments
-  const allShipments = [...mockShipments];
-  savedOrders.forEach((order: any) => {
-    if (order.trackingNumber && !allShipments.some(s => s.trackingNumber === order.trackingNumber)) {
-      allShipments.push(getDynamicShipment(order));
-    }
+  const [ordersList, setOrdersList] = useState<any[]>(() => {
+    const saved = localStorage.getItem("amrita_orders");
+    return saved ? JSON.parse(saved) : [];
   });
+
+  const [shipmentsState, setShipmentsState] = useState<Shipment[]>([]);
+
+  useEffect(() => {
+    const combined = [...mockShipments];
+    ordersList.forEach((order: any) => {
+      if (order.trackingNumber && !combined.some(s => s.trackingNumber === order.trackingNumber)) {
+        combined.push(getDynamicShipment(order));
+      }
+    });
+    setShipmentsState(combined);
+  }, [ordersList]);
+
+  const handleMarkAsDelivered = (trackingNumber: string) => {
+    const saved = localStorage.getItem("amrita_orders");
+    let currentOrders = saved ? JSON.parse(saved) : [];
+    let parentOrder = currentOrders.find((o: any) => o.trackingNumber === trackingNumber);
+
+    if (parentOrder) {
+      const updatedOrders = currentOrders.map((o: any) => {
+        if (o.trackingNumber === trackingNumber) {
+          return { ...o, status: "completed" }; // Auto-toggle status to Completed
+        }
+        return o;
+      });
+      localStorage.setItem("amrita_orders", JSON.stringify(updatedOrders));
+      setOrdersList(updatedOrders);
+      alert(`Consignment ${trackingNumber} has been successfully delivered!\n\nParent order ${parentOrder.orderNumber} status auto-toggled to "Completed".`);
+    } else {
+      setShipmentsState(prev => prev.map(s => {
+        if (s.trackingNumber === trackingNumber) {
+          const updatedTimeline = [...s.timeline];
+          if (!updatedTimeline.some(t => t.status === "Delivered")) {
+            updatedTimeline.push({
+              timestamp: new Date().toISOString().replace('T', ' ').substring(0, 16),
+              location: "Destination Address",
+              status: "Delivered",
+              description: "Successfully delivered"
+            });
+          }
+          return {
+            ...s,
+            currentStatus: "delivered",
+            timeline: updatedTimeline
+          };
+        }
+        return s;
+      }));
+      alert(`Consignment ${trackingNumber} status updated to Delivered!`);
+    }
+  };
 
   // Filter based on active search query
   const displayedShipments = activeQuery
-    ? allShipments.filter(s =>
+    ? shipmentsState.filter(s =>
         s.trackingNumber.toLowerCase() === activeQuery.trim().toLowerCase() ||
         s.orderNumber.toLowerCase() === activeQuery.trim().toLowerCase()
       )
-    : allShipments;
+    : shipmentsState;
 
   return (
     <div className="space-y-5">
       <div className="flex flex-col gap-[5px]">
         <h1 className="text-[28px] font-semibold leading-[36px] tracking-[-0.75px] text-[#191c1e]">Tracking System</h1>
-        <p className="text-sm text-[#43474e] font-normal leading-5">Monitor shipment status via India Post API</p>
+        <p className="text-sm text-[#43474e] font-normal leading-5">Monitor shipment status via India Post & DTDC APIs</p>
       </div>
 
       <div className="bg-card border border-border rounded-xl p-6 shadow-[0_1px_3px_rgba(0,0,0,0.06),0_1px_2px_rgba(0,0,0,0.04)]">
@@ -238,6 +282,22 @@ export function TrackingSystem() {
                 {/* Expandable timeline */}
                 {isExpanded && (
                 <div className="p-8">
+                  {shipment.currentStatus !== "delivered" && (
+                    <div className="mb-6 p-4 bg-[var(--color-dawn-mid)]/30 border border-[var(--color-institutional-blue)]/20 rounded-xl flex items-center justify-between">
+                      <div className="text-sm text-foreground/85">
+                        <strong>Simulate Courier Milestone API:</strong> Manually trigger delivery update to test parent order completion.
+                      </div>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleMarkAsDelivered(shipment.trackingNumber);
+                        }}
+                        className="px-4 py-2 bg-[var(--color-saffron)] text-white text-xs font-semibold rounded-lg hover:bg-[var(--color-saffron-dark)] transition-all cursor-pointer border-none"
+                      >
+                        Simulate Delivery (Delivered)
+                      </button>
+                    </div>
+                  )}
                   <div className="space-y-6">
                     {(() => {
                       const isDelivered = shipment.currentStatus === "delivered";
@@ -337,9 +397,9 @@ export function TrackingSystem() {
       <div className="bg-gradient-to-br from-card to-[var(--color-dawn-mid)] border border-[var(--color-saffron)]/20 rounded-xl p-8 shadow-[0_1px_3px_rgba(0,0,0,0.06),0_1px_2px_rgba(0,0,0,0.04)]">
         <h3 className="text-[16px] font-bold leading-[24px] text-[#191c1e] mb-4">System Automation</h3>
         <div className="space-y-5 text-sm text-foreground/70 leading-relaxed">
-          <p>• Tracking data syncs via India Post API with cached updates</p>
+          <p>• Tracking data syncs via India Post and DTDC Express APIs with cached updates</p>
           <p>• Courier statuses automatically map to internal order statuses</p>
-          <p>• Delivered shipments auto-mark orders as "Completed"</p>
+          <p>• Delivered shipments auto-mark parent orders as "Completed"</p>
           <p>• RTS (Return to Sender) shipments flagged as high priority</p>
         </div>
       </div>

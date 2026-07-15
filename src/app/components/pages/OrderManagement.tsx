@@ -5,6 +5,54 @@ import { RowActionsMenu } from "../RowActionsMenu";
 import { addAuditLog } from "../../utils/auditLogStore";
 import { InvoiceModal } from "../InvoiceModal";
 
+const generateDTDCBase64Label = (refNum: string, order: any) => {
+  const html = `
+    <html>
+      <head>
+        <style>
+          body { font-family: sans-serif; margin: 10px; padding: 10px; border: 2px solid #000; width: 340px; box-sizing: border-box; }
+          .header { display: flex; justify-content: space-between; border-bottom: 2px solid #000; padding-bottom: 5px; align-items: center; }
+          .logo { font-size: 18px; font-weight: bold; color: #002045; }
+          .tier { font-size: 10px; font-weight: bold; padding: 2px 6px; border: 1px solid #000; background: #e0f2fe; }
+          .barcode { margin: 15px 0; text-align: center; }
+          .barcode-line { height: 40px; background-color: #000; width: 90%; margin: 0 auto; }
+          .ref { font-size: 14px; font-weight: bold; letter-spacing: 2px; margin-top: 5px; text-align: center; }
+          .address { font-size: 11px; line-height: 1.4; margin: 10px 0; }
+          .footer { font-size: 9px; text-align: center; border-top: 1px solid #ddd; padding-top: 5px; color: #666; margin-top: 15px; }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          <div class="logo">DTDC Express</div>
+          <div class="tier">PREMIUM</div>
+        </div>
+        <div class="barcode">
+          <div style="font-size: 9px; margin-bottom: 3px; color:#555; font-weight: bold;">CONSIGNMENT NO</div>
+          <div class="barcode-line" style="background: repeating-linear-gradient(90deg, #000, #000 2px, #fff 2px, #fff 4px);"></div>
+          <div class="ref">${refNum}</div>
+        </div>
+        <div class="address">
+          <strong>TO:</strong><br/>
+          ${order?.customer || "Recipient"}<br/>
+          ${order?.customerEmail || "customer@example.com"}<br/>
+          123, Spiritual Path, Ashram Road<br/>
+          Bangalore, Karnataka - 560001
+        </div>
+        <div class="address">
+          <strong>FROM:</strong><br/>
+          Amrita Books Office<br/>
+          Amritapuri, Kollam, Kerala - 690525
+        </div>
+        <div class="footer">
+          Amrita Books Admin Portal · Simulated DTDC API Service
+        </div>
+      </body>
+    </html>
+  `;
+  return "data:text/html;base64," + btoa(unescape(encodeURIComponent(html)));
+};
+
+
 type OrderItem = {
   bookTitle: string;
   language: string;
@@ -44,7 +92,7 @@ type Order = {
   createdAt: string;
   createdTime?: string;
   trackingNumber?: string;
-  courier?: "india-post" | "dhl";
+  courier?: "india-post" | "dtdc";
   orderItems?: OrderItem[];
   subscriptionPlan?: "monthly" | "yearly";
   subscriptionEndDate?: string;
@@ -141,8 +189,8 @@ const mockOrders: Order[] = [
     paymentStatus: "paid",
     createdAt: "2026-05-10",
     createdTime: "11:20 AM",
-    trackingNumber: "1234567890",
-    courier: "dhl",
+    trackingNumber: "N21996707",
+    courier: "dtdc",
     orderItems: [
       { bookTitle: "Mahabharata", language: "Telugu", format: "physical", quantity: 2, price: 1998 },
       { bookTitle: "Puranas Compilation", language: "Bengali", format: "physical", quantity: 2, price: 1798 }
@@ -373,8 +421,11 @@ export function OrderManagement() {
   });
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [trackingInput, setTrackingInput] = useState("");
-  const [courier, setCourier] = useState<"india-post" | "dhl">("india-post");
+  const [courier, setCourier] = useState<"india-post" | "dtdc">("india-post");
   const [trackingError, setTrackingError] = useState("");
+  const [isGeneratingLabel, setIsGeneratingLabel] = useState(false);
+  const [showLabelPreview, setShowLabelPreview] = useState(false);
+  const [generatedLabelBase64, setGeneratedLabelBase64] = useState("");
   const [activeTab, setActiveTab] = useState<"all" | "physical" | "digital" | "subscription">("all");
   const [showRefundModal, setShowRefundModal] = useState(false);
   const [refundType, setRefundType] = useState<"full" | "partial">("full");
@@ -639,13 +690,16 @@ export function OrderManagement() {
   const handleTrackingSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (courier === "india-post" && !trackingInput.endsWith("IN")) {
-      setTrackingError("Invalid tracking number. India Post tracking numbers must end with 'IN'");
-      return;
+    if (courier === "india-post") {
+      const indiaPostRegex = /^[A-Z0-9]{11}IN$/i;
+      if (!indiaPostRegex.test(trackingInput)) {
+        setTrackingError("Invalid tracking number. India Post tracking numbers must be a 13-character alphanumeric string ending in 'IN'");
+        return;
+      }
     }
 
-    if (courier === "dhl" && trackingInput.length < 10) {
-      setTrackingError("Invalid DHL tracking number. Please enter a valid tracking number");
+    if (courier === "dtdc" && !trackingInput) {
+      setTrackingError("DTDC Express tracking code not generated. Please generate a shipping label first.");
       return;
     }
 
@@ -665,7 +719,7 @@ export function OrderManagement() {
 
     setOrders(updatedOrders);
     localStorage.setItem("amrita_orders", JSON.stringify(updatedOrders));
-    addAuditLog("Orders", `Updated courier tracking details for order ${trackingOrderForEdit?.orderNumber} (Courier: ${courier}, Tracking #: ${trackingInput})`, "info");
+    addAuditLog("Orders", `Updated courier tracking details for order ${trackingOrderForEdit?.orderNumber} (Courier: ${courier === "india-post" ? "India Post" : "DTDC Express"}, Tracking #: ${trackingInput})`, "info");
 
     if (selectedOrder && selectedOrder.id === trackingOrderForEdit?.id) {
       setSelectedOrder({
@@ -677,9 +731,9 @@ export function OrderManagement() {
     }
 
     if (isEditingTracking) {
-      alert(`Tracking details updated!\n\nOrder: ${trackingOrderForEdit?.orderNumber}\nCourier: ${courier === "india-post" ? "India Post" : "DHL"}\nTracking: ${trackingInput}\n\nCustomer has been notified of the update.`);
+      alert(`Tracking details updated!\n\nOrder: ${trackingOrderForEdit?.orderNumber}\nCourier: ${courier === "india-post" ? "India Post" : "DTDC Express"}\nTracking: ${trackingInput}\n\nCustomer has been notified of the update.`);
     } else {
-      alert(`Tracking number saved!\n\nOrder: ${trackingOrderForEdit?.orderNumber}\nCourier: ${courier === "india-post" ? "India Post" : "DHL"}\nTracking: ${trackingInput}\nStatus: Shipped\n\nCustomer email notification sent.`);
+      alert(`Tracking number saved!\n\nOrder: ${trackingOrderForEdit?.orderNumber}\nCourier: ${courier === "india-post" ? "India Post" : "DTDC Express"}\nTracking: ${trackingInput}\nStatus: Shipped\n\nCustomer email notification sent.`);
     }
 
     setShowTrackingModal(false);
@@ -1260,7 +1314,11 @@ export function OrderManagement() {
                 <div className="space-y-5 bg-[var(--color-neutral-100)] p-4 rounded-lg">
                   <div className="flex justify-between items-center">
                     <span className="text-sm text-muted-foreground">Courier Service</span>
-                    <span className="font-medium">{selectedOrder.courier === "india-post" ? "India Post" : "DHL"}</span>
+                    <span className="font-medium">
+                      {selectedOrder.courier === "india-post" 
+                        ? "India Post (Normal Shipping)" 
+                        : "DTDC Express (Premium Shipping)"}
+                    </span>
                   </div>
                   <div className="flex justify-between items-center">
                     <span className="text-sm text-muted-foreground">Tracking Number</span>
@@ -1272,6 +1330,50 @@ export function OrderManagement() {
                       {statusConfig[selectedOrder.status].label}
                     </span>
                   </div>
+                  {selectedOrder.courier === "dtdc" && (
+                    <div className="flex gap-3 pt-3 border-t border-border mt-3">
+                      <button
+                        onClick={() => {
+                          const base64 = generateDTDCBase64Label(selectedOrder.trackingNumber || "", selectedOrder);
+                          setGeneratedLabelBase64(base64);
+                          setShowLabelPreview(true);
+                        }}
+                        className="px-4 py-2 text-xs font-semibold text-white bg-[var(--color-saffron)] hover:bg-[var(--color-saffron-dark)] rounded-lg transition-colors cursor-pointer border-none"
+                      >
+                        Print Shipping Label
+                      </button>
+                      <button
+                        onClick={() => {
+                          if (window.confirm("Are you sure you want to cancel this DTDC shipment?")) {
+                            const updated = orders.map(o => {
+                              if (o.id === selectedOrder.id) {
+                                return {
+                                  ...o,
+                                  trackingNumber: undefined,
+                                  courier: undefined,
+                                  status: "pending" as const
+                                };
+                              }
+                              return o;
+                            });
+                            setOrders(updated);
+                            localStorage.setItem("amrita_orders", JSON.stringify(updated));
+                            addAuditLog("Orders", `Cancelled DTDC Express shipment (Consignment #: ${selectedOrder.trackingNumber}) for order ${selectedOrder.orderNumber}`, "warning");
+                            setSelectedOrder({
+                              ...selectedOrder,
+                              trackingNumber: undefined,
+                              courier: undefined,
+                              status: "pending"
+                            });
+                            alert(`Shipment ${selectedOrder.trackingNumber} successfully cancelled! Order reverted to Pending.`);
+                          }
+                        }}
+                        className="px-4 py-2 text-xs font-semibold text-destructive hover:bg-destructive/5 border border-destructive/20 rounded-lg transition-colors cursor-pointer bg-transparent"
+                      >
+                        Cancel Shipment
+                      </button>
+                    </div>
+                  )}
                 </div>
               </div>
             )}
@@ -1412,42 +1514,121 @@ export function OrderManagement() {
                 <select
                   value={courier}
                   onChange={(e) => {
-                    setCourier(e.target.value as "india-post" | "dhl");
+                    setCourier(e.target.value as "india-post" | "dtdc");
                     setTrackingInput("");
                     setTrackingError("");
                   }}
                   className="w-full px-4 py-3 bg-input-background rounded-lg border border-border focus:outline-none focus:ring-2 focus:ring-[var(--color-institutional-blue)]/25 focus:border-[var(--color-institutional-blue)] transition-all"
                 >
-                  <option value="india-post">India Post</option>
-                  <option value="dhl">DHL</option>
+                  <option value="india-post">India Post (Normal Shipping)</option>
+                  <option value="dtdc">DTDC Express (Premium Shipping)</option>
                 </select>
               </div>
 
-              <div>
-                <label className="block mb-2 text-sm font-semibold">Tracking Number</label>
-                <input
-                  type="text"
-                  value={trackingInput}
-                  onChange={(e) => {
-                    setTrackingInput(e.target.value);
-                    setTrackingError("");
-                  }}
-                  placeholder={courier === "india-post" ? "e.g., RN123456789IN" : "e.g., 1234567890"}
-                  className={`w-full px-4 py-3 bg-input-background rounded-lg border ${
-                    trackingError ? "border-destructive" : "border-border"
-                  } focus:outline-none focus:ring-2 ${
-                    trackingError ? "focus:ring-destructive/30" : "focus:ring-[var(--color-institutional-blue)]/25"
-                  } focus:border-[var(--color-institutional-blue)] transition-all`}
-                />
-                {trackingError && (
-                  <p className="text-sm text-destructive mt-2">{trackingError}</p>
-                )}
-                <p className="text-xs text-muted-foreground mt-2">
-                  {isEditingTracking
-                    ? "Update tracking information for this order"
-                    : 'Saving will update status to "Shipped" and notify customer'}
-                </p>
-              </div>
+              {courier === "india-post" ? (
+                <div>
+                  <label className="block mb-2 text-sm font-semibold">Tracking Number</label>
+                  <input
+                    type="text"
+                    value={trackingInput}
+                    onChange={(e) => {
+                      setTrackingInput(e.target.value);
+                      setTrackingError("");
+                    }}
+                    placeholder="e.g., RN123456789IN"
+                    className={`w-full px-4 py-3 bg-input-background rounded-lg border ${
+                      trackingError ? "border-destructive" : "border-border"
+                    } focus:outline-none focus:ring-2 ${
+                      trackingError ? "focus:ring-destructive/30" : "focus:ring-[var(--color-institutional-blue)]/25"
+                    } focus:border-[var(--color-institutional-blue)] transition-all`}
+                  />
+                  {trackingError && (
+                    <p className="text-sm text-destructive mt-2">{trackingError}</p>
+                  )}
+                  <p className="text-xs text-muted-foreground mt-2">
+                    {isEditingTracking
+                      ? "Update tracking information for this order"
+                      : 'Saving will update status to "Shipped" and notify customer'}
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  <div>
+                    <label className="block mb-2 text-sm font-semibold">DTDC Consignment Reference</label>
+                    {trackingInput ? (
+                      <div className="flex items-center justify-between p-3.5 bg-emerald-50 border border-emerald-200 rounded-lg text-emerald-800 font-mono font-bold text-sm">
+                        <span>{trackingInput}</span>
+                        <span className="text-[10px] bg-emerald-200 text-emerald-950 font-sans font-bold px-2 py-0.5 rounded uppercase tracking-wider">
+                          Assigned
+                        </span>
+                      </div>
+                    ) : (
+                      <div className="p-3.5 bg-amber-50 border border-amber-200 rounded-lg text-amber-800 text-xs">
+                        ⚠️ No consignment reference. DTDC premium shipping requires soft-data generation first.
+                      </div>
+                    )}
+                    {trackingError && (
+                      <p className="text-sm text-destructive mt-2">{trackingError}</p>
+                    )}
+                  </div>
+
+                  <div className="flex flex-col gap-2.5">
+                    {!trackingInput ? (
+                      <button
+                        type="button"
+                        disabled={isGeneratingLabel}
+                        onClick={() => {
+                          setIsGeneratingLabel(true);
+                          setTrackingError("");
+                          setTimeout(() => {
+                            const randRef = "N" + Math.floor(10000000 + Math.random() * 90000000);
+                            setTrackingInput(randRef);
+                            setIsGeneratingLabel(false);
+                            addAuditLog("Orders", `Uploaded soft data to DTDC client API for order ${trackingOrderForEdit?.orderNumber} and generated consignment ref ${randRef}`, "success");
+                          }, 700);
+                        }}
+                        className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-[var(--color-institutional-blue)] text-white rounded-lg hover:opacity-90 transition-all font-semibold text-sm disabled:opacity-50 border-none cursor-pointer"
+                      >
+                        {isGeneratingLabel ? (
+                          <>
+                            <span className="w-4.5 h-4.5 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+                            Uploading Soft Data...
+                          </>
+                        ) : (
+                          "Generate Shipping Label (Soft Data Ingestion)"
+                        )}
+                      </button>
+                    ) : (
+                      <div className="grid grid-cols-2 gap-2">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const base64 = generateDTDCBase64Label(trackingInput, trackingOrderForEdit);
+                            setGeneratedLabelBase64(base64);
+                            setShowLabelPreview(true);
+                          }}
+                          className="px-4 py-2.5 bg-[var(--color-saffron)] text-white rounded-lg hover:bg-[var(--color-saffron-dark)] font-semibold text-xs transition-all text-center border-none cursor-pointer"
+                        >
+                          Print Shipping Label
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (window.confirm("Are you sure you want to cancel this consignment?")) {
+                              addAuditLog("Orders", `Cancelled DTDC Consignment ${trackingInput} via client API call`, "warning");
+                              setTrackingInput("");
+                              setTrackingError("");
+                            }
+                          }}
+                          className="px-4 py-2.5 bg-transparent border border-destructive/30 text-destructive rounded-lg hover:bg-destructive/5 font-semibold text-xs transition-all text-center cursor-pointer"
+                        >
+                          Cancel Consignment
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
 
               <button
                 type="submit"
@@ -2205,6 +2386,54 @@ export function OrderManagement() {
             >
               Close Tracking Details
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* DTDC Shipping Label Preview Modal */}
+      {showLabelPreview && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 animate-[fadeIn_0.2s_ease-out]">
+          <div className="bg-white text-slate-800 rounded-xl w-full max-w-md flex flex-col shadow-2xl overflow-hidden">
+            <div className="flex items-center justify-between px-6 py-4 bg-slate-50 border-b border-slate-100">
+              <span className="text-sm font-bold text-[#002045]">Shipping Label Preview</span>
+              <button
+                onClick={() => setShowLabelPreview(false)}
+                className="text-slate-400 hover:text-slate-600 transition-colors border-none bg-transparent text-xl font-bold cursor-pointer"
+              >
+                ×
+              </button>
+            </div>
+            <div className="p-6 flex justify-center bg-slate-100">
+              <iframe
+                src={generatedLabelBase64}
+                title="DTDC Shipping Label"
+                className="w-[340px] h-[360px] border border-slate-300 rounded shadow-md bg-white"
+              />
+            </div>
+            <div className="flex justify-end gap-3 px-6 py-4 bg-slate-50 border-t border-slate-100">
+              <button
+                onClick={() => {
+                  const printWindow = window.open();
+                  if (printWindow) {
+                    printWindow.document.write(`<iframe src="${generatedLabelBase64}" style="width:100%;height:100%;border:none;"></iframe>`);
+                    printWindow.document.close();
+                    setTimeout(() => {
+                      printWindow.focus();
+                      printWindow.print();
+                    }, 500);
+                  }
+                }}
+                className="px-4 py-2 bg-[var(--color-institutional-blue)] text-white text-xs font-semibold rounded-lg hover:opacity-90 transition-all border-none cursor-pointer"
+              >
+                Print Label
+              </button>
+              <button
+                onClick={() => setShowLabelPreview(false)}
+                className="px-4 py-2 bg-white border border-slate-200 text-xs font-semibold rounded-lg text-slate-700 hover:bg-slate-50 transition-all cursor-pointer"
+              >
+                Close
+              </button>
+            </div>
           </div>
         </div>
       )}
