@@ -1,64 +1,77 @@
-# Gap Analysis: Amrita Books Admin Portal vs. Web Application
+# Gap Analysis: Amrita Books Product Suite
+### Admin Portal vs. Web Application vs. Mobile eReader App
 
-This document identifies the functional, architectural, and data synchronization gaps between the **Admin Portal** (internal operations) and the **Web Application** (customer-facing portal). Bridging these gaps will align client experiences with management configurations.
+This document analyzes the functional scope, authentication rules, and data synchronization gaps across all three systems in the Amrita Books platform.
 
 ---
 
-## 1. Functional & Feature Gaps
+## 1. Persona & Scope Comparison
 
-| Feature Area | Admin Portal Configuration | Web Application Implementation | Detected Gap & Discrepancy |
+| Metric | Admin Portal | Web Application | Mobile eReader App |
 | :--- | :--- | :--- | :--- |
-| **Coupon / Discount System** | Support for Coupon Codes, discount types (percentage vs. fixed value), customer usage limits, and category-specific validations. | Cart and Checkout pages do not feature coupon code input boxes or coupon application states. | **High**: Customers cannot redeem admin-configured coupons. Discount validations are not shared. |
-| **Regional Pricing** | Regional pricing matrix overrides for physical/digital formats across multiple currencies (INR, USD, EUR, Rest of World). | Simple mock check (`userCountry === 'India' ? '₹' : '$'`) that multiplies base price by 83. | **Medium**: Regional pricing overrides defined in the Catalog catalog are ignored on the client storefront. |
-| **Push Notification Delivery** | Push Notification composer to target specific audiences and schedule dispatches (simulates FCM/APNs). | User-facing notification preferences panel. No client-side notification display or FCM service worker. | **High**: Dispatched notifications from the Admin Center have no target client implementation to be received or shown. |
-| **eBook Reading Assets** | eBook file uploader (PDF/EPUB) with OCR extraction engine and side-by-side text editor. | eReader displaying mock chapter content. | **High**: Client eReader does not load the actual PDF files or the reviewed OCR text assets generated in Admin. |
-| **Refund Ledger & Sync** | Supports full and partial item-level refund processing with balances adjusted in Razorpay simulator. | Order Details page with order receipts. | **Medium**: Customer invoice states do not reflect refund status transitions (`Partially Refunded` or `Refunded`). |
-| **Spotlight Banner Sequence** | Configuration form for homepage carousel sequences, quote Author/Citation citations, and CTA links. | Slideshow Carousel with static quotes list. | **Low**: The homepage slideshow sequence is hardcoded and does not load the banners configured by the Admin. |
-| **Author Profiles** | Creation of author bios, avatars, and linked catalog directories. | Authors page and Author detail pages. | **Low**: Author directories on the Web App do not load dynamic biographies and cover lists created in Admin. |
+| **Primary Audience** | Internal staff (Super Admins, Catalog Managers, Fulfillment). | General public, buyers, and subscribers. | Existing eBook buyers and active subscribers *only*. |
+| **Registration / Signup** | Created manually by Super Admins via RBAC dashboard. | Self-registration and login on checkout/profile. | **No signup**. Must log in using Web App credentials. |
+| **E-Commerce Flows** | Refund processing, courier shipments, coupon codes management. | Full shopping cart, physical & digital checkouts, payment gateway. | **No checkout/billing**. Restricts to reading and adding catalog items. |
+| **eReader Capabilities** | OCR text extraction, proofreading, and side-by-side editing. | Online browser-based eReader. | Native eReader with secure offline downloads. |
+| **Push Alerts** | Composing, scheduling, targeting, and dispatching. | Notification preferences (on/off toggles). | Native FCM/APNs listener, notification badge, and push inbox. |
 
 ---
 
-## 2. Data Synchronization Gaps
+## 2. Core Functional Gaps
 
-### 2.1 Catalog Data Flow
-- **Discrepancy**: Admin Portal saves books and regional pricing parameters directly to its local database (`localStorage` key `amrita_books`). Web App retrieves books from a static mock file (`/src/app/data/books.ts`).
-- **Required Fix**: Merge the data sources so that the Web App reads the active catalog collection directly from the synchronized local storage store (`amrita_books`), ensuring updates in Admin appear instantly on the storefront.
+### 2.1 The Gatekeeper Access Logic (Login Restriction)
+- **Description**: The Mobile App must reject logins from users who do not own a digital book or hold an active subscription.
+- **The Gap**: The current Auth API does not have an entitlement checking mechanism. To support the Mobile App PRD, the `POST /auth/login` endpoint must return a validation error code if the user's account records `digital_purchases.length === 0` and `subscription.status !== 'Active'`.
 
-### 2.2 Order Fulfillment & Courier Tracking
-- **Discrepancy**: In the Admin Portal, assigning tracking codes (India Post 13-character or DTDC `N` + 8 digits) sets an order status to `Shipped`. In the Web App, customer order tracking views look up static mocks.
-- **Required Fix**: Bind the customer Order Tracking page directly to the common `orders` local storage table, allowing users to track shipment milestones updated by the Admin courier simulator in real-time.
+### 2.2 Subscription "Explore & Add" Workflow
+- **Description**: Subscribed users can browse the catalog on the Mobile App and click "Add to Library" directly.
+- **The Gap**: The database must support an endpoint to dynamically map a book ID to a user's subscription library profile. This action must synchronize so that the book appears in the "Library" list on both the Web App and the Mobile App.
 
-### 2.3 User Accounts & Subscriptions
-- **Discrepancy**: Admin Portal manages a customer directory, allocates complimentary plans, and extends or revokes access. The Web App uses a separate `AuthContext` check (`amrita_auth` key) for login and hardcoded subscription states.
-- **Required Fix**: Link the Web App's subscription locking mechanisms to check the user's registered profile inside the common `subscribers` database, ensuring validity extensions or revocations take effect immediately.
+### 2.3 Shared Reading Progress Sync (eReader Sync)
+- **Description**: A user reading a book on the Web App should be able to open the Mobile App offline and see their bookmarks, annotations, and page progress synchronized.
+- **The Gap**: Currently, reading progress is stored in independent local storage instances. We require a centralized sync API (`/api/sync/progress`) that records the last-read timestamp, active page index, and custom highlights list per book, handling conflict resolution (e.g. "latest timestamp wins").
+
+### 2.4 Secure Offline DRM (Asset Downloading)
+- **Description**: The Mobile App requires downloading books for offline access, encrypted locally via AES-256. The Web App is online-only.
+- **The Gap**: The Admin Portal uploads EPUB/PDF book assets. The system must support generating signed, short-lived download URLs for the Mobile App to securely pull the encrypted book files without exposing public paths.
+
+### 2.5 Push Notification Routing
+- **Description**: Composed alerts in the Admin Portal must be received by both the Web App and Mobile App.
+- **The Gap**: The Admin Portal's simulated dispatch must be connected to a real notification broker. It must register Firebase Cloud Messaging (FCM) tokens for web browsers and mobile devices, routing notifications to native APNs/FCM for the Mobile App and saving them to the user's notification inbox.
 
 ---
 
-## 3. Recommended Integration Plan
+## 3. Unified Architecture Model
 
 ```mermaid
-graph LR
-  subgraph Admin Portal
-    A[Catalog Manager] -->|Writes to| DB_Catalog[(Catalog DB)]
-    B[Order Center] -->|Updates| DB_Orders[(Orders DB)]
-    C[Subscription Center] -->|Manages| DB_Subs[(Subscribers DB)]
-    D[Banners Editor] -->|Saves| DB_Banners[(Banners DB)]
+graph TD
+  subgraph Admin Portal [Admin Management Portal]
+    Admin[Admin Staff] -->|Manages Catalog| DB_Books[(Catalog DB)]
+    Admin -->|Dispatches Alerts| APNS_FCM[FCM & APNs Broker]
+    Admin -->|Manages Accounts| DB_Users[(Users & Subs DB)]
   end
 
-  subgraph Web Application
-    DB_Catalog -->|Loads prices & files| WA_Store[Storefront / BDP]
-    DB_Orders -->|Reads milestones| WA_Tracking[Order Tracking]
-    DB_Subs -->|Validates access| WA_Reader[eBook Reader]
-    DB_Banners -->|Renders slides| WA_Home[Homepage Hero]
+  subgraph Web App [Web Storefront]
+    Guest[Public Visitor] -->|Buys Book / Subscribes| Web_Checkout[Web Checkout]
+    Web_Checkout -->|Writes Orders| DB_Orders[(Orders DB)]
+    User_W[Logged-in User] -->|Reads Online| Web_Reader[Online eReader]
+    Web_Reader -->|Syncs Progress| DB_Progress[(Progress & Sync DB)]
   end
 
-  style DB_Catalog fill:#f9f,stroke:#333,stroke-width:2px
-  style DB_Orders fill:#f9f,stroke:#333,stroke-width:2px
-  style DB_Subs fill:#f9f,stroke:#333,stroke-width:2px
-  style DB_Banners fill:#f9f,stroke:#333,stroke-width:2px
+  subgraph Mobile App [Mobile eReader App]
+    User_M[Gated User] -->|Logs In| Auth_Gate{Entitlement Check?}
+    Auth_Gate -- Invalid Sub & No Purchases --> Block[Show Access Warning]
+    Auth_Gate -- Active Sub / Owner --> Access[Grant Access]
+    Access -->|Syncs Library| Mob_Lib[Library Tab]
+    Access -->|Downloads Encrypted Files| Mob_Offline[Offline DRM Vault]
+    Access -->|Receives Alerts| Mob_Inbox[Push Inbox]
+    Access -->|Explore & Add| Mob_Add[Add Subscribable Books]
+    
+    Mob_Add -->|Syncs Library| DB_Users
+    Mob_Lib -->|Reads/Writes Progress| DB_Progress
+    APNS_FCM -->|Pushes Alerts| Mob_Inbox
+  end
+
+  style Auth_Gate fill:#f9f,stroke:#333,stroke-width:2px
+  style Mob_Offline fill:#ff9,stroke:#333,stroke-width:1px
 ```
-
-1. **Unify Database Mocking**: Migrate both projects to use a shared virtual database module reading from local storage (or a shared indexedDB store) instead of separate mock files.
-2. **Implement Coupon Handler**: Add a `CouponContext` to checkout pages to parse active codes from the coupon database and subtract discounts.
-3. **Connect eReader to OCR Outputs**: Set the Reader page to query chapters using the edited OCR text logs generated from the book's Admin catalog card.
-4. **Subscribe to FCM Simulators**: Implement a browser notification listener on the Web App to display alert banners when a manual notification is sent from the Admin portal.
