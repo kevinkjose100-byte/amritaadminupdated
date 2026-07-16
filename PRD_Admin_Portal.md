@@ -1,12 +1,7 @@
 # Product Requirement Document (PRD)
 ## Amrita Books Admin Portal (Updated)
 
-**Document Version:** 1.2.0  
-**Date:** July 16, 2026  
-**Status:** Approved  
-**Author:** AI Pair Programmer  
 
----
 
 ## 1. Executive Summary & Objectives
 The **Amrita Books Admin Portal** is the central operational core for Amrita Books. It provides administrators, monastic members, and fulfillment staff with the necessary interfaces to manage physical and digital catalog items, track customer orders, process subscriptions, configure regional pricing structures, review OCR eBook conversions, administer coupons, monitor financial transactions, and govern team access controls.

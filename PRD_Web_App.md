@@ -1,12 +1,7 @@
 # Product Requirement Document (PRD)
 ## Amrita Books Web Application (Responsive Customer Portal)
 
-**Document Version:** 1.2.0  
-**Date:** July 16, 2026  
-**Status:** Draft  
-**Author:** AI Pair Programmer  
 
----
 
 ## 1. Executive Summary & Objectives
 The **Amrita Books Web Application** is the customer-facing storefront and digital reading platform for Amrita Books. It is a responsive, mobile-first web app designed to let users explore the literature catalog, purchase physical books, buy or subscribe to digital eBooks, track orders, manage profiles, and read publications directly in their web browser.

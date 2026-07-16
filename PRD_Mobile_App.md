@@ -1,12 +1,7 @@
 # Product Requirement Document (PRD)
 ## Amrita Books Mobile Application (Digital Reader Companion)
 
-**Document Version:** 1.2.0  
-**Date:** July 16, 2026  
-**Status:** Draft  
-**Author:** AI Pair Programmer  
 
----
 
 ## 1. Executive Summary & Objectives
 The **Amrita Books Mobile Application** is a companion digital eReader designed for mobile devices. The Mobile App has **no self-signup or registration flows** and **no checkout payment options**. It functions exclusively as a gated portal for users who have either purchased eBooks or hold active subscriptions through the Amrita Books web portal.
