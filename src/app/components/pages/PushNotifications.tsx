@@ -1,8 +1,8 @@
 import { useState, useEffect } from "react";
 import { 
   Bell, Send, Calendar, Clock, Trash2, RefreshCw, CheckCircle, 
-  Smartphone, Sparkles, TrendingUp, Users, Check, AlertCircle, 
-  ExternalLink, FileText, Database, Wifi, ChevronRight, X, AlertTriangle
+  Smartphone, Sparkles, Check, AlertCircle, 
+  ExternalLink, ChevronRight, X, AlertTriangle
 } from "lucide-react";
 import { 
   getSentNotifications, getScheduledNotifications, getSubscriberStats,
@@ -30,7 +30,7 @@ const PRESET_IMAGES = [
 ];
 
 export function PushNotifications() {
-  const [activeTab, setActiveTab] = useState<"compose" | "history" | "scheduled" | "analytics">("compose");
+  const [activeTab, setActiveTab] = useState<"compose" | "history" | "scheduled">("compose");
   const [sentList, setSentList] = useState<PushNotification[]>([]);
   const [scheduledList, setScheduledList] = useState<PushNotification[]>([]);
   const [stats, setStats] = useState<SubscriberStats | null>(null);
@@ -194,27 +194,13 @@ export function PushNotifications() {
       )}
 
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div className="flex flex-col gap-[5px]">
-          <h1 className="text-[28px] font-semibold leading-[36px] tracking-[-0.75px] text-[#1E293B]">Push Notification Center</h1>
-          <p className="text-sm text-[#64748B] font-normal leading-5">Compose, schedule, preview, and monitor push notifications sent to mobile and web devices.</p>
-        </div>
-        
-        {/* Quick Connection Panel */}
-        <div className="flex items-center gap-4 bg-white border border-slate-200 rounded-xl p-2.5 shadow-sm">
-          <div className="flex items-center gap-1.5 px-2 py-1 rounded bg-emerald-50 border border-emerald-100">
-            <Wifi className="w-4 h-4 text-emerald-600" />
-            <span className="text-[11px] font-bold text-emerald-700 uppercase tracking-wider">FCM: Connected</span>
-          </div>
-          <div className="flex items-center gap-1.5 px-2 py-1 rounded bg-emerald-50 border border-emerald-100">
-            <Wifi className="w-4 h-4 text-emerald-600" />
-            <span className="text-[11px] font-bold text-emerald-700 uppercase tracking-wider">APNs: Connected</span>
-          </div>
-        </div>
+      <div className="flex flex-col gap-[5px]">
+        <h1 className="text-[28px] font-semibold leading-[36px] tracking-[-0.75px] text-[#1E293B]">Push Notification Center</h1>
+        <p className="text-sm text-[#64748B] font-normal leading-5">Compose, schedule, preview, and monitor push notifications sent to mobile and web devices.</p>
       </div>
 
       {/* Tab navigation */}
-      <div className="border-b border-slate-200 flex items-center justify-between">
+      <div className="border-b border-slate-200">
         <div className="flex gap-1 -mb-[1px]">
           <button 
             onClick={() => setActiveTab("compose")}
@@ -259,23 +245,6 @@ export function PushNotifications() {
               </span>
             )}
           </button>
-          <button 
-            onClick={() => setActiveTab("analytics")}
-            className={`px-4 py-3 text-sm font-medium border-b-2 transition-all flex items-center gap-2 ${
-              activeTab === "analytics" 
-                ? "border-[#002045] text-[#002045]" 
-                : "border-transparent text-[#64748B] hover:text-[#1E293B]"
-            }`}
-          >
-            <TrendingUp className="w-4 h-4" />
-            Analytics & Status
-          </button>
-        </div>
-
-        {/* Short info */}
-        <div className="hidden md:flex items-center gap-2 text-xs text-[#64748B] font-medium bg-slate-50 px-3 py-1 rounded-lg border border-slate-100">
-          <Users className="w-3.5 h-3.5 text-slate-500" />
-          <span>Active push subscriptions: <strong>{stats?.totalSubscribers.toLocaleString() || "12,450"}</strong> users</span>
         </div>
       </div>
 
@@ -321,10 +290,10 @@ export function PushNotifications() {
                     onChange={(e) => setAudience(e.target.value as any)}
                     className="w-full px-3.5 py-2.5 text-[14px] text-[#1E293B] bg-white border border-[#D1D5DC] rounded-lg focus:outline-none focus:border-[#002045] focus:ring-1 focus:ring-[#002045]/20 cursor-pointer"
                   >
-                    <option value="All Users">All Registered Users ({stats?.totalSubscribers.toLocaleString()})</option>
-                    <option value="Premium Subscribers">Premium Active Members ({Math.round(stats ? stats.totalSubscribers * 0.25 : 3000).toLocaleString()})</option>
-                    <option value="Basic Subscribers">Basic Active Members ({Math.round(stats ? stats.totalSubscribers * 0.50 : 6000).toLocaleString()})</option>
-                    <option value="Inactive Users">Inactive Users (30+ days offline) ({Math.round(stats ? stats.totalSubscribers * 0.15 : 1800).toLocaleString()})</option>
+                    <option value="All Users">All Registered Users</option>
+                    <option value="Premium Subscribers">Premium Active Members</option>
+                    <option value="Basic Subscribers">Basic Active Members</option>
+                    <option value="Inactive Users">Inactive Users (30+ days offline)</option>
                   </select>
                 </div>
               </div>
@@ -894,175 +863,7 @@ export function PushNotifications() {
         </div>
       )}
 
-      {activeTab === "analytics" && (
-        <div className="space-y-6">
-          {/* Subscriptions metrics cards */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-5">
-            <div className="bg-white border border-[#E2E8F0] rounded-xl p-5 shadow-sm space-y-4">
-              <div className="flex items-start justify-between">
-                <span className="text-[13px] font-semibold text-slate-500">Total Push Subscribers</span>
-                <div className="w-9 h-9 rounded-full bg-indigo-50 flex items-center justify-center">
-                  <Users className="w-4.5 h-4.5 text-indigo-600" />
-                </div>
-              </div>
-              <div>
-                <p className="text-2xl font-bold text-[#1E293B] leading-none">{stats?.totalSubscribers.toLocaleString() || "12,450"}</p>
-                <div className="flex items-center gap-1 text-[11px] text-slate-400 mt-2">
-                  <span className="text-emerald-600 font-bold">↑ +4.2%</span>
-                  <span>vs last month</span>
-                </div>
-              </div>
-            </div>
 
-            <div className="bg-white border border-[#E2E8F0] rounded-xl p-5 shadow-sm space-y-4">
-              <div className="flex items-start justify-between">
-                <span className="text-[13px] font-semibold text-slate-500">Android Target Reach</span>
-                <div className="w-9 h-9 rounded-full bg-emerald-50 flex items-center justify-center">
-                  <Smartphone className="w-4.5 h-4.5 text-emerald-600" />
-                </div>
-              </div>
-              <div>
-                <p className="text-2xl font-bold text-[#1E293B] leading-none">{stats?.androidSubscribers.toLocaleString() || "6,180"}</p>
-                <div className="flex items-center gap-1 text-[11px] text-slate-400 mt-2">
-                  <span>Split: <strong>49.6%</strong> of total subscribers</span>
-                </div>
-              </div>
-            </div>
-
-            <div className="bg-white border border-[#E2E8F0] rounded-xl p-5 shadow-sm space-y-4">
-              <div className="flex items-start justify-between">
-                <span className="text-[13px] font-semibold text-slate-500">iOS Target Reach</span>
-                <div className="w-9 h-9 rounded-full bg-indigo-50 flex items-center justify-center">
-                  <Smartphone className="w-4.5 h-4.5 text-indigo-600" />
-                </div>
-              </div>
-              <div>
-                <p className="text-2xl font-bold text-[#1E293B] leading-none">{stats?.iosSubscribers.toLocaleString() || "5,120"}</p>
-                <div className="flex items-center gap-1 text-[11px] text-slate-400 mt-2">
-                  <span>Split: <strong>41.1%</strong> of total subscribers</span>
-                </div>
-              </div>
-            </div>
-
-            <div className="bg-white border border-[#E2E8F0] rounded-xl p-5 shadow-sm space-y-4">
-              <div className="flex items-start justify-between">
-                <span className="text-[13px] font-semibold text-slate-500">Average Click-Through (CTR)</span>
-                <div className="w-9 h-9 rounded-full bg-rose-50 flex items-center justify-center">
-                  <TrendingUp className="w-4.5 h-4.5 text-rose-600" />
-                </div>
-              </div>
-              <div>
-                <p className="text-2xl font-bold text-[#1E293B] leading-none">{stats?.averageCTR || "16.8"}%</p>
-                <div className="flex items-center gap-1 text-[11px] text-slate-400 mt-2">
-                  <span className="text-emerald-600 font-bold">↑ +1.1%</span>
-                  <span>average performance</span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* Click CTR chart graph */}
-            <div className="lg:col-span-2 bg-white border border-[#E2E8F0] rounded-2xl p-6 shadow-sm space-y-5">
-              <div>
-                <h3 className="text-[15px] font-bold text-[#1E293B]">Historical Performance Trend</h3>
-                <p className="text-xs text-slate-500 mt-0.5">Average open CTR rate and volumes dispatched per month.</p>
-              </div>
-              
-              <div className="w-full h-[280px]">
-                <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart data={analyticsData}>
-                    <defs>
-                      <linearGradient id="colorCtr" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#002045" stopOpacity={0.15}/>
-                        <stop offset="95%" stopColor="#002045" stopOpacity={0.01}/>
-                      </linearGradient>
-                    </defs>
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} opacity={0.3} />
-                    <XAxis dataKey="name" fontSize={11} stroke="#94A3B8" axisLine={false} tickLine={false} />
-                    <YAxis fontSize={11} stroke="#94A3B8" axisLine={false} tickLine={false} unit="%" />
-                    <Tooltip 
-                      contentStyle={{ 
-                        backgroundColor: "rgba(255, 255, 255, 0.95)", 
-                        borderColor: "#E2E8F0",
-                        borderRadius: "8px",
-                        boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.05)"
-                      }} 
-                    />
-                    <Area 
-                      type="monotone" 
-                      dataKey="ctr" 
-                      name="Click CTR (%)" 
-                      stroke="#002045" 
-                      strokeWidth={2.5} 
-                      fillOpacity={1} 
-                      fill="url(#colorCtr)" 
-                    />
-                  </AreaChart>
-                </ResponsiveContainer>
-              </div>
-            </div>
-
-            {/* Integration Status Panel */}
-            <div className="bg-white border border-[#E2E8F0] rounded-2xl p-6 shadow-sm space-y-6">
-              <div>
-                <h3 className="text-[15px] font-bold text-[#1E293B]">Gateway Integration Details</h3>
-                <p className="text-xs text-slate-500 mt-0.5">Physical validation and active credentials checks.</p>
-              </div>
-
-              <div className="space-y-4">
-                {/* Firebase FCM */}
-                <div className="flex items-start gap-3 p-3 bg-slate-50 rounded-xl border border-slate-100">
-                  <div className="p-2 rounded-lg bg-indigo-50 flex-shrink-0 text-indigo-600">
-                    <Database className="w-5 h-5" />
-                  </div>
-                  <div className="flex-1 space-y-1">
-                    <div className="flex items-center justify-between">
-                      <span className="font-semibold text-xs text-slate-800">Firebase FCM Gateway</span>
-                      <span className="text-[10px] bg-emerald-50 text-emerald-700 px-1.5 py-0.25 rounded font-bold uppercase tracking-wider border border-emerald-100">Active</span>
-                    </div>
-                    <p className="text-[11px] text-slate-500 leading-normal">Credential verification, server pings, and delivery routes configured properly.</p>
-                    <div className="text-[10px] text-slate-400 font-mono flex items-center gap-1">
-                      <span>Project: amritabooks-app-prod</span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Apple APNs */}
-                <div className="flex items-start gap-3 p-3 bg-slate-50 rounded-xl border border-slate-100">
-                  <div className="p-2 rounded-lg bg-indigo-50 flex-shrink-0 text-indigo-600">
-                    <Smartphone className="w-5 h-5" />
-                  </div>
-                  <div className="flex-1 space-y-1">
-                    <div className="flex items-center justify-between">
-                      <span className="font-semibold text-xs text-slate-800">Apple APNs HTTP/2</span>
-                      <span className="text-[10px] bg-emerald-50 text-emerald-700 px-1.5 py-0.25 rounded font-bold uppercase tracking-wider border border-emerald-100">Active</span>
-                    </div>
-                    <p className="text-[11px] text-slate-500 leading-normal">Token-based authentication validated via Apple developer console endpoints.</p>
-                    <div className="text-[10px] text-slate-400 font-mono flex items-center gap-1">
-                      <span>Key ID: 89PXRW32Q7</span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Audit Integration Status */}
-                <div className="flex items-start gap-3 p-3 bg-slate-50 rounded-xl border border-slate-100">
-                  <div className="p-2 rounded-lg bg-indigo-50 flex-shrink-0 text-indigo-600">
-                    <FileText className="w-5 h-5" />
-                  </div>
-                  <div className="flex-1 space-y-1">
-                    <div className="flex items-center justify-between">
-                      <span className="font-semibold text-xs text-slate-800">Audit Logging Module</span>
-                      <span className="text-[10px] bg-emerald-50 text-emerald-700 px-1.5 py-0.25 rounded font-bold uppercase tracking-wider border border-emerald-100">Linked</span>
-                    </div>
-                    <p className="text-[11px] text-slate-500 leading-normal">Every notification composed, sent, scheduled, or cancelled compiles details to AuditLogs store.</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
