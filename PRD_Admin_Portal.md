@@ -482,6 +482,70 @@ An automated eBook ingestion utility to upload, process, and publish catalog ite
 
 ---
 
+### 4.18 Push Notification Center
+#### Overview & Purpose
+Allows administrators to compose, target, schedule, and preview push notifications. Helps coordinate marketing campaigns, new release alerts, and live event reminders for store users.
+
+#### UI & Layout
+- **Compose Section**:
+  - Category type dropdown selector.
+  - Target audience dropdown selector.
+  - Input field for notification title and textarea for the body (with live character countdowns).
+  - Optional action deep-link input with quick preset buttons.
+  - Optional media image URL input with quick preset cover options.
+  - Scheduling toggle ("Send Immediately" vs. "Schedule for later date/time" with custom date-time picker).
+- **Interactive Live Device Preview**:
+  - Renders the notification exactly as it would appear on a mobile device.
+  - Interactive platform toggle: **Apple iOS** vs. **Google Android**.
+  - Binds title, body, and image attachments in real-time.
+- **Notification History Log Tab**:
+  - List of dispatched notifications, timestamps, audiences, click metrics, and simulated CTR.
+  - Action button to duplicate content back into the composer, and action to delete entry from logs.
+- **Scheduled Queue Tab**:
+  - List of future-scheduled notifications, release times, and statuses.
+  - Action to force send immediately and action to cancel/delete queue item.
+
+#### Notification Operations Flow
+```mermaid
+graph TD
+  A[Admin: Compose Notification] --> B{Valid Title & Body?}
+  B -- No --> C[Show Error Toast]
+  B -- Yes --> D{Scheduling Type?}
+  D -- Immediate --> E[Simulate FCM/APNs Dispatch]
+  E --> F[Add to Sent History]
+  E --> G[Log Audit Action]
+  D -- Scheduled --> H[Validate Date/Time]
+  H -- Valid --> I[Queue in Scheduled List]
+  H -- Invalid --> C
+  I --> G
+  J[Scheduled Queue List] --> K{Actions}
+  K -- Send Now --> E
+  K -- Cancel/Delete --> L[Delete from Queue]
+  L --> G
+  M[Sent History List] --> N{Actions}
+  N -- Resend/Use Content --> O[Prefill Compose Form]
+  N -- Delete Log --> P[Remove from History]
+  P --> G
+```
+
+#### Functional Requirements
+- Composing requires non-empty Title and Body inputs. Titles are capped at 65 characters; messages at 180 characters.
+- Action triggers (dispatching, scheduling, forcing send, or deleting logs) must record entries to the central Audit Log.
+- Duplicating history content pre-fills all composer fields and redirects focus back to the Compose tab.
+
+#### User Stories
+##### As an Admin, I want to compose a push notification and preview its display on both iOS and Android platforms in real time, so that I can prevent text clipping on mobile lockscreens.
+- **Acceptance Criteria**:
+  - Typing in title/body fields updates the mockup text dynamically.
+  - Uploading or inputting an image URL renders the image inside the notification box.
+  - Toggling platform modes switches visual theme styling instantly.
+
+##### As an Admin, I want to review dispatched notifications and reuse their text, so that I don't have to re-type repeating event announcements.
+- **Acceptance Criteria**:
+  - Selecting "Use Content" on any log row copies metadata into the composer form and switches to the compose tab.
+
+---
+
 ## 5. Non-Functional Requirements
 
 ### 5.1 Security & Compliance
