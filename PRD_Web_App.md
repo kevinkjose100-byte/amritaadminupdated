@@ -149,12 +149,17 @@ The core in-browser digital reading application. Offers custom themes, page cont
 
 ### 4.7 Shopping Cart & Checkout
 #### Overview & Purpose
-Manages purchase checkouts for physical items, calculated shipping costs, and payment gateways.
+Manages purchase checkouts for physical items, calculated shipping costs, coupon redemptions, and payment gateways.
 
 #### UI & Layout
 - **Cart Page**:
   - Left column: List of item cards with quantity selectors and remove actions.
-  - Right column: Sticky order summary panel detailing subtotal, estimated shipping, tax, and a "Proceed to Checkout" button.
+  - Right column: Sticky order summary panel detailing subtotal, estimated shipping, tax, **coupon code input field (with active "Apply/Remove" state toggles)**, discount deduction display row, and a "Proceed to Checkout" button.
+- **Coupon Redemption Module**:
+  - Validates typed coupon codes against the active coupon database in real-time.
+  - Formats codes to auto-uppercase and strips spaces.
+  - Applies fixed amount (e.g. -₹150) or percentage discounts (e.g. -15%) and subtracts from the subtotal.
+  - Displays error banners for expired codes, usage limits reached, minimum order requirements unmet, or invalid order formats (e.g. applying a digital-only coupon on a cart with physical items).
 - **Physical Checkout Steps**:
   1. **Shipping Address Step**: Renders a grid of saved address cards. Includes selection indicator badges and a "+ Add New Address" form.
   2. **Shipping Method Step**: Displays shipping method options (Standard Shipping: 5-7 days for $4.99; Express Shipping: 2-3 days for $14.99).
