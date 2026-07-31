@@ -176,6 +176,14 @@ type LanguageVariant = {
     status?: "Draft" | "Review" | "Approved" | "Published" | "Archived";
   };
   physical?: {
+    hasSoftCover?: boolean;
+    softCoverIsbn?: string;
+    softCoverSku?: string;
+    softCoverStock?: number;
+    hasHardCover?: boolean;
+    hardCoverIsbn?: string;
+    hardCoverSku?: string;
+    hardCoverStock?: number;
     isbn: string;
     price: number;
     salePrice?: number;
@@ -1677,17 +1685,27 @@ function SimplifiedLanguageVariantCard({
   const [isCoverDragging, setIsCoverDragging] = useState(false);
   const [isEbookDragging, setIsEbookDragging] = useState(false);
 
-  const isDigitalPriceOk = (variant.digital?.price || 0) > 0;
+  const isDigitalPriceOk = ((variant.regionalPrices?.["india"]?.digitalPrice ?? variant.digital?.price ?? 0) > 0);
   const isDigitalCoverOk = !!variant.coverUrl;
   const isDigitalDescOk = (variant.description?.trim().length || 0) > 10;
   const isDigitalIsbnOk = !!variant.digital?.isbn;
   const allDigitalChecksPassed = isDigitalPriceOk && isDigitalCoverOk && isDigitalDescOk && isDigitalIsbnOk;
 
-  const isPhysicalPriceOk = (variant.physical?.price || 0) > 0;
+  const isPhysicalPriceOk = ((variant.regionalPrices?.["india"]?.physicalPrice ?? variant.physical?.price ?? 0) > 0);
   const isPhysicalCoverOk = !!variant.coverUrl;
   const isPhysicalDescOk = (variant.description?.trim().length || 0) > 10;
-  const isPhysicalIsbnOk = !!variant.physical?.isbn;
-  const isPhysicalSkuOk = !!variant.physical?.sku;
+  
+  const hasSoftCover = variant.physical?.hasSoftCover !== false;
+  const hasHardCover = !!variant.physical?.hasHardCover;
+  const atLeastOneCoverSelected = hasSoftCover || hasHardCover;
+
+  const softIsbnOk = !hasSoftCover || !!(variant.physical?.softCoverIsbn || variant.physical?.isbn);
+  const softSkuOk = !hasSoftCover || !!(variant.physical?.softCoverSku || variant.physical?.sku);
+  const hardIsbnOk = !hasHardCover || !!variant.physical?.hardCoverIsbn;
+  const hardSkuOk = !hasHardCover || !!variant.physical?.hardCoverSku;
+
+  const isPhysicalIsbnOk = softIsbnOk && hardIsbnOk && atLeastOneCoverSelected;
+  const isPhysicalSkuOk = softSkuOk && hardSkuOk && atLeastOneCoverSelected;
   const isPhysicalWeightOk = (variant.physical?.weight || 0) > 0;
   const allPhysicalChecksPassed = isPhysicalPriceOk && isPhysicalCoverOk && isPhysicalDescOk && isPhysicalIsbnOk && isPhysicalSkuOk && isPhysicalWeightOk;
 
@@ -1750,8 +1768,10 @@ function SimplifiedLanguageVariantCard({
     if (variant.physical) formats.push("Physical");
 
     const prices: string[] = [];
-    if (variant.digital?.price) prices.push(`₹${variant.digital.price}`);
-    if (variant.physical?.price) prices.push(`₹${variant.physical.price}`);
+    const dPrice = variant.regionalPrices?.["india"]?.digitalPrice ?? variant.digital?.price;
+    const pPrice = variant.regionalPrices?.["india"]?.physicalPrice ?? variant.physical?.price;
+    if (dPrice) prices.push(`₹${dPrice}`);
+    if (pPrice) prices.push(`₹${pPrice}`);
 
     const stock = variant.physical?.stock || 0;
 
@@ -2240,37 +2260,15 @@ function SimplifiedLanguageVariantCard({
                   </div>
                 </div>
 
-                <div className="grid grid-cols-3 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium mb-2">Digital ISBN</label>
-                    <input
-                      type="text"
-                      value={variant.digital.isbn}
-                      onChange={(e) => onUpdate({ digital: { ...variant.digital!, isbn: e.target.value } })}
-                      placeholder="978-1-234-56789-0"
-                      className="w-full px-3 py-2 bg-card border border-border rounded-md text-sm"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-2">Base Price (₹)</label>
-                    <input
-                      type="number"
-                      value={variant.digital.price !== undefined ? variant.digital.price : ""}
-                      onChange={(e) => onUpdate({ digital: { ...variant.digital!, price: parseFloat(e.target.value) || 0 } })}
-                      placeholder="299"
-                      className="w-full px-3 py-2 bg-card border border-border rounded-md text-sm"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-2">Sale Price (₹) (Optional)</label>
-                    <input
-                      type="number"
-                      value={variant.digital.salePrice !== undefined ? variant.digital.salePrice : ""}
-                      onChange={(e) => onUpdate({ digital: { ...variant.digital!, salePrice: e.target.value ? parseFloat(e.target.value) : undefined } })}
-                      placeholder="Sale Price"
-                      className="w-full px-3 py-2 bg-card border border-border rounded-md text-sm"
-                    />
-                  </div>
+                <div>
+                  <label className="block text-sm font-medium mb-2">Digital ISBN</label>
+                  <input
+                    type="text"
+                    value={variant.digital.isbn}
+                    onChange={(e) => onUpdate({ digital: { ...variant.digital!, isbn: e.target.value } })}
+                    placeholder="978-1-234-56789-0"
+                    className="w-full px-3 py-2 bg-card border border-border rounded-md text-sm"
+                  />
                 </div>
 
                 {/* eBook Upload & Processing */}
@@ -2560,57 +2558,171 @@ function SimplifiedLanguageVariantCard({
                   </div>
                 </div>
 
+                {/* Binding Cover Format Selection */}
+                <div className="bg-white p-4 rounded-xl border border-[#E2E8F0] space-y-3 shadow-sm">
+                  <div className="flex items-center justify-between border-b border-[#E2E8F0] pb-2">
+                    <div>
+                      <h5 className="text-xs font-bold uppercase tracking-wider text-slate-700">Cover Binding Options</h5>
+                      <p className="text-xs text-muted-foreground mt-0.5">Select Soft Cover (Paperback), Hard Cover (Hardback), or both for this language edition.</p>
+                    </div>
+                  </div>
+                  
+                  <div className="flex flex-wrap items-center gap-6 pt-1">
+                    <label className="flex items-center gap-2 cursor-pointer select-none">
+                      <input
+                        type="checkbox"
+                        checked={variant.physical.hasSoftCover !== false}
+                        onChange={(e) => {
+                          onUpdate({
+                            physical: {
+                              ...variant.physical!,
+                              hasSoftCover: e.target.checked
+                            }
+                          });
+                        }}
+                        className="w-4 h-4 rounded border border-slate-300 text-[var(--color-institutional-blue)] focus:ring-[var(--color-institutional-blue)]"
+                      />
+                      <span className="text-sm font-semibold text-slate-800">Soft Cover (Paperback)</span>
+                    </label>
+
+                    <label className="flex items-center gap-2 cursor-pointer select-none">
+                      <input
+                        type="checkbox"
+                        checked={!!variant.physical.hasHardCover}
+                        onChange={(e) => {
+                          onUpdate({
+                            physical: {
+                              ...variant.physical!,
+                              hasHardCover: e.target.checked
+                            }
+                          });
+                        }}
+                        className="w-4 h-4 rounded border border-slate-300 text-[var(--color-institutional-blue)] focus:ring-[var(--color-institutional-blue)]"
+                      />
+                      <span className="text-sm font-semibold text-slate-800">Hard Cover (Hardback)</span>
+                    </label>
+                  </div>
+                </div>
+
+                {/* Soft Cover Edition Details */}
+                {(variant.physical.hasSoftCover !== false) && (
+                  <div className="bg-slate-50/80 p-4 rounded-xl border border-[#CBD5E1] space-y-3">
+                    <div className="flex items-center gap-2 border-b border-[#E2E8F0] pb-2">
+                      <span className="w-2.5 h-2.5 rounded-full bg-blue-600 inline-block"></span>
+                      <h6 className="text-xs font-bold text-slate-800 uppercase tracking-wider">Soft Cover (Paperback) Edition</h6>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div>
+                        <label className="block text-xs font-medium mb-1 text-slate-700">Soft Cover ISBN</label>
+                        <input
+                          type="text"
+                          value={variant.physical.softCoverIsbn ?? variant.physical.isbn ?? ""}
+                          onChange={(e) => onUpdate({
+                            physical: {
+                              ...variant.physical!,
+                              softCoverIsbn: e.target.value,
+                              isbn: e.target.value
+                            }
+                          })}
+                          placeholder="e.g. 978-81-8056-001-2"
+                          className="w-full px-3 py-2 bg-white border border-[#CBD5E1] rounded-md text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-500/25"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium mb-1 text-slate-700">Soft Cover SKU</label>
+                        <input
+                          type="text"
+                          value={variant.physical.softCoverSku ?? variant.physical.sku ?? ""}
+                          onChange={(e) => onUpdate({
+                            physical: {
+                              ...variant.physical!,
+                              softCoverSku: e.target.value,
+                              sku: e.target.value
+                            }
+                          })}
+                          placeholder="e.g. BG-EN-SC-001"
+                          className="w-full px-3 py-2 bg-white border border-[#CBD5E1] rounded-md text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-500/25"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium mb-1 text-slate-700">Soft Cover Stock Count</label>
+                        <input
+                          type="number"
+                          value={variant.physical.softCoverStock ?? variant.physical.stock ?? 0}
+                          onChange={(e) => onUpdate({
+                            physical: {
+                              ...variant.physical!,
+                              softCoverStock: parseInt(e.target.value) || 0,
+                              stock: parseInt(e.target.value) || 0
+                            }
+                          })}
+                          placeholder="50"
+                          className="w-full px-3 py-2 bg-white border border-[#CBD5E1] rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/25"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Hard Cover Edition Details */}
+                {variant.physical.hasHardCover && (
+                  <div className="bg-amber-50/70 p-4 rounded-xl border border-amber-300/80 space-y-3">
+                    <div className="flex items-center gap-2 border-b border-amber-200 pb-2">
+                      <span className="w-2.5 h-2.5 rounded-full bg-amber-600 inline-block"></span>
+                      <h6 className="text-xs font-bold text-amber-900 uppercase tracking-wider">Hard Cover (Hardback) Edition</h6>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div>
+                        <label className="block text-xs font-medium mb-1 text-amber-900">Hard Cover ISBN</label>
+                        <input
+                          type="text"
+                          value={variant.physical.hardCoverIsbn || ""}
+                          onChange={(e) => onUpdate({
+                            physical: {
+                              ...variant.physical!,
+                              hardCoverIsbn: e.target.value
+                            }
+                          })}
+                          placeholder="e.g. 978-81-8056-002-9"
+                          className="w-full px-3 py-2 bg-white border border-amber-300 rounded-md text-sm font-mono focus:outline-none focus:ring-2 focus:ring-amber-500/25"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium mb-1 text-amber-900">Hard Cover SKU</label>
+                        <input
+                          type="text"
+                          value={variant.physical.hardCoverSku || ""}
+                          onChange={(e) => onUpdate({
+                            physical: {
+                              ...variant.physical!,
+                              hardCoverSku: e.target.value
+                            }
+                          })}
+                          placeholder="e.g. BG-EN-HC-001"
+                          className="w-full px-3 py-2 bg-white border border-amber-300 rounded-md text-sm font-mono focus:outline-none focus:ring-2 focus:ring-amber-500/25"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium mb-1 text-amber-900">Hard Cover Stock Count</label>
+                        <input
+                          type="number"
+                          value={variant.physical.hardCoverStock ?? 0}
+                          onChange={(e) => onUpdate({
+                            physical: {
+                              ...variant.physical!,
+                              hardCoverStock: parseInt(e.target.value) || 0
+                            }
+                          })}
+                          placeholder="25"
+                          className="w-full px-3 py-2 bg-white border border-amber-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/25"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Weight & Stock Summary */}
                 <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium mb-2">Physical ISBN</label>
-                    <input
-                      type="text"
-                      value={variant.physical.isbn}
-                      onChange={(e) => onUpdate({ physical: { ...variant.physical!, isbn: e.target.value } })}
-                      placeholder="978-1-234-56789-1"
-                      className="w-full px-3 py-2 bg-card border border-border rounded-md text-sm"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-2">SKU</label>
-                    <input
-                      type="text"
-                      value={variant.physical.sku}
-                      onChange={(e) => onUpdate({ physical: { ...variant.physical!, sku: e.target.value } })}
-                      placeholder="BG-EN-001"
-                      className="w-full px-3 py-2 bg-card border border-border rounded-md text-sm"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-2">Base Price (₹)</label>
-                    <input
-                      type="number"
-                      value={variant.physical.price !== undefined ? variant.physical.price : ""}
-                      onChange={(e) => onUpdate({ physical: { ...variant.physical!, price: parseFloat(e.target.value) || 0 } })}
-                      placeholder="499"
-                      className="w-full px-3 py-2 bg-card border border-border rounded-md text-sm"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-2">Sale Price (₹) (Optional)</label>
-                    <input
-                      type="number"
-                      value={variant.physical.salePrice !== undefined ? variant.physical.salePrice : ""}
-                      onChange={(e) => onUpdate({ physical: { ...variant.physical!, salePrice: e.target.value ? parseFloat(e.target.value) : undefined } })}
-                      placeholder="Sale Price"
-                      className="w-full px-3 py-2 bg-card border border-border rounded-md text-sm"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-2">Stock Count</label>
-                    <input
-                      type="number"
-                      value={variant.physical.stock}
-                      onChange={(e) => onUpdate({ physical: { ...variant.physical!, stock: parseInt(e.target.value) || 0 } })}
-                      placeholder="50"
-                      className="w-full px-3 py-2 bg-card border border-border rounded-md text-sm"
-                    />
-                  </div>
                   <div>
                     <label className="block text-sm font-medium mb-2">Weight (grams)</label>
                     <input
@@ -2621,33 +2733,49 @@ function SimplifiedLanguageVariantCard({
                       className="w-full px-3 py-2 bg-card border border-border rounded-md text-sm"
                     />
                   </div>
-                  <div className="col-span-2">
-                    <label className="block text-sm font-medium mb-2">Dimensions (mm)</label>
-                    <div className="grid grid-cols-3 gap-4">
-                      <input
-                        type="number"
-                        value={variant.physical.length}
-                        onChange={(e) => onUpdate({ physical: { ...variant.physical!, length: parseInt(e.target.value) || 0 } })}
-                        placeholder="Length: 210"
-                        className="px-3 py-2 bg-card border border-border rounded-md text-sm"
-                      />
-                      <input
-                        type="number"
-                        value={variant.physical.width}
-                        onChange={(e) => onUpdate({ physical: { ...variant.physical!, width: parseInt(e.target.value) || 0 } })}
-                        placeholder="Width: 140"
-                        className="px-3 py-2 bg-card border border-border rounded-md text-sm"
-                      />
-                      <input
-                        type="number"
-                        value={variant.physical.height}
-                        onChange={(e) => onUpdate({ physical: { ...variant.physical!, height: parseInt(e.target.value) || 0 } })}
-                        placeholder="Height: 25"
-                        className="px-3 py-2 bg-card border border-border rounded-md text-sm"
-                      />
-                    </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-2">Combined Physical Stock</label>
+                    <input
+                      type="number"
+                      value={
+                        (variant.physical.hasSoftCover !== false ? (variant.physical.softCoverStock ?? variant.physical.stock ?? 0) : 0) +
+                        (variant.physical.hasHardCover ? (variant.physical.hardCoverStock ?? 0) : 0)
+                      }
+                      disabled
+                      readOnly
+                      className="w-full px-3 py-2 bg-muted border border-border rounded-md text-sm font-bold text-slate-700"
+                    />
                   </div>
                 </div>
+
+                {/* Dimensions (mm) */}
+                <div className="mt-4">
+                  <label className="block text-sm font-medium mb-2">Dimensions (mm)</label>
+                  <div className="grid grid-cols-3 gap-4">
+                    <input
+                      type="number"
+                      value={variant.physical.length}
+                      onChange={(e) => onUpdate({ physical: { ...variant.physical!, length: parseInt(e.target.value) || 0 } })}
+                      placeholder="Length: 210"
+                      className="px-3 py-2 bg-card border border-border rounded-md text-sm"
+                    />
+                    <input
+                      type="number"
+                      value={variant.physical.width}
+                      onChange={(e) => onUpdate({ physical: { ...variant.physical!, width: parseInt(e.target.value) || 0 } })}
+                      placeholder="Width: 140"
+                      className="px-3 py-2 bg-card border border-border rounded-md text-sm"
+                    />
+                    <input
+                      type="number"
+                      value={variant.physical.height}
+                      onChange={(e) => onUpdate({ physical: { ...variant.physical!, height: parseInt(e.target.value) || 0 } })}
+                      placeholder="Height: 25"
+                      className="px-3 py-2 bg-card border border-border rounded-md text-sm"
+                    />
+                  </div>
+                </div>
+
                 <div className="pt-4 border-t border-[#E2E8F0]">
                   <label className="block text-sm font-medium mb-3">Shipping Costs</label>
                   <div className="grid grid-cols-2 gap-4">

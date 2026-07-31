@@ -1,4 +1,4 @@
-import { Upload, FileText, CheckCircle, Clock } from "lucide-react";
+import { Upload, FileText, CheckCircle, Clock, Download } from "lucide-react";
 
 type IngestionItem = {
   id: string;
@@ -30,20 +30,50 @@ export function BulkIngestion() {
         <p className="text-sm text-[#43474e] font-normal leading-5">Automated PDF processing and catalog ingestion</p>
       </div>
 
-      <div className="bg-gradient-to-br from-card to-[var(--color-dawn-mid)] border border-border rounded-xl p-10 shadow-[0_1px_3px_rgba(0,0,0,0.06),0_1px_2px_rgba(0,0,0,0.04)]">
-        <div className="text-center">
-          <div className="inline-flex items-center justify-center w-20 h-20 bg-[var(--color-institutional-blue)]/10 rounded-2xl mb-6">
-            <Upload className="w-10 h-10 text-[var(--color-institutional-blue)]" />
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+        <div className="md:col-span-2 bg-gradient-to-br from-card to-[var(--color-dawn-mid)] border border-border rounded-xl p-8 shadow-[0_1px_3px_rgba(0,0,0,0.06),0_1px_2px_rgba(0,0,0,0.04)]">
+          <div className="text-center">
+            <div className="inline-flex items-center justify-center w-16 h-16 bg-[var(--color-institutional-blue)]/10 rounded-2xl mb-4">
+              <Upload className="w-8 h-8 text-[var(--color-institutional-blue)]" />
+            </div>
+            <h3 className="text-[16px] font-bold leading-[24px] text-[#191c1e] mb-2">Upload PDFs for Processing</h3>
+            <p className="text-muted-foreground mb-6 max-w-md mx-auto text-sm leading-relaxed">Upload single PDFs or batch ZIP files for automated extraction</p>
+            <div className="flex gap-3 justify-center">
+              <button className="px-5 py-2.5 bg-[var(--color-saffron)] text-white rounded-xl hover:bg-[var(--color-saffron-dark)] hover:shadow-md transition-all text-sm font-medium">
+                Upload Files
+              </button>
+              <button className="px-5 py-2.5 border border-border bg-background/80 rounded-xl hover:bg-[var(--color-neutral-100)] hover:border-[var(--color-institutional-blue)] transition-all text-sm font-medium">
+                Upload ZIP
+              </button>
+            </div>
           </div>
-          <h3 className="text-[16px] font-bold leading-[24px] text-[#191c1e] mb-3">Upload PDFs for Processing</h3>
-          <p className="text-muted-foreground mb-8 max-w-md mx-auto leading-relaxed">Upload single PDFs or batch ZIP files for automated extraction</p>
-          <div className="flex gap-4 justify-center">
-            <button className="px-6 py-3 bg-[var(--color-saffron)] text-white rounded-xl hover:bg-[var(--color-saffron-dark)] hover:shadow-md transition-all font-medium">
-              Upload Files
-            </button>
-            <button className="px-6 py-3 border border-border bg-background/80 rounded-xl hover:bg-[var(--color-neutral-100)] hover:border-[var(--color-institutional-blue)] transition-all font-medium">
-              Upload ZIP
-            </button>
+        </div>
+
+        <div className="bg-card border border-border rounded-xl p-6 shadow-[0_1px_3px_rgba(0,0,0,0.06),0_1px_2px_rgba(0,0,0,0.04)] flex flex-col justify-between">
+          <div>
+            <div className="inline-flex items-center justify-center w-12 h-12 bg-amber-500/10 rounded-xl mb-3 border border-amber-500/20">
+              <Download className="w-6 h-6 text-amber-600" />
+            </div>
+            <h3 className="text-[15px] font-bold leading-[22px] text-[#191c1e] mb-1">Catalog Entry Templates</h3>
+            <p className="text-xs text-muted-foreground leading-relaxed mb-4">
+              Download pre-formatted client entry templates (100 rows with dropdown validations & instructions).
+            </p>
+          </div>
+          <div className="space-y-2">
+            <a
+              href="/Amrita_Books_Catalog_Template_100_Books.xlsx"
+              download="Amrita_Books_Catalog_Template_100_Books.xlsx"
+              className="flex items-center justify-center gap-2 w-full px-4 py-2.5 bg-amber-600 text-white rounded-xl hover:bg-amber-700 transition-all text-xs font-semibold shadow-sm"
+            >
+              <Download className="w-4 h-4" /> Download Excel (.xlsx)
+            </a>
+            <a
+              href="/Amrita_Books_Catalog_Template_100_Books.csv"
+              download="Amrita_Books_Catalog_Template_100_Books.csv"
+              className="flex items-center justify-center gap-2 w-full px-4 py-2 border border-border bg-background rounded-xl hover:bg-muted transition-all text-xs font-medium text-foreground"
+            >
+              <Download className="w-4 h-4" /> Download CSV (.csv)
+            </a>
           </div>
         </div>
       </div>
