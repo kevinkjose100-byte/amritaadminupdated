@@ -24,3 +24,18 @@ dist-ssr
 
 # Local Netlify folder
 .netlify
+
+# Documentation and PRDs
+admin_functional_requirements.md
+Gaps_Analysis.md
+Gaps_Analysis.pdf
+generate_pdfs.cjs
+Non_Functional_Requirements.md
+Non_Functional_Requirements.pdf
+Notification_Templates.md
+Notification_Templates.pdf
+PRD_*.md
+PRD_*.pdf
+Third_Party_Integrations.md
+Third_Party_Integrations.pdf
+src/imports/pasted_text/*.md
