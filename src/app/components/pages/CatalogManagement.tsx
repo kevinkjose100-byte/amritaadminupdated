@@ -150,11 +150,7 @@ type EbookProcessing = {
   fileName?: string;
   fileSize?: number;
   uploadedAt?: string;
-  ocrConfidence?: number;
   totalPages?: number;
-  reviewedPages?: number;
-  pageIssues?: PageIssue[];
-  healthScore?: "good" | "moderate" | "poor";
 };
 
 type LanguageVariant = {
@@ -180,18 +176,26 @@ type LanguageVariant = {
     softCoverIsbn?: string;
     softCoverSku?: string;
     softCoverStock?: number;
+    softCoverWeight?: number;
+    softCoverLength?: number;
+    softCoverWidth?: number;
+    softCoverHeight?: number;
     hasHardCover?: boolean;
     hardCoverIsbn?: string;
     hardCoverSku?: string;
     hardCoverStock?: number;
+    hardCoverWeight?: number;
+    hardCoverLength?: number;
+    hardCoverWidth?: number;
+    hardCoverHeight?: number;
     isbn: string;
     price: number;
     salePrice?: number;
     stock: number;
-    weight: number;
-    length: number;
-    width: number;
-    height: number;
+    weight?: number;
+    length?: number;
+    width?: number;
+    height?: number;
     sku: string;
     shippingIndia?: number;
     shippingInternational?: number;
@@ -309,17 +313,7 @@ export const mockBooks: Book[] = [
             fileName: "ramayana-tamil.pdf",
             fileSize: 3.2,
             uploadedAt: "2026-05-15T10:30:00Z",
-            ocrConfidence: 84,
             totalPages: 312,
-            reviewedPages: 156,
-            healthScore: "moderate",
-            pageIssues: [
-              { pageNumber: 23, severity: "warning", issues: ["Low OCR confidence for Tamil script"], confidence: 72 },
-              { pageNumber: 67, severity: "critical", issues: ["Script recognition failed", "Encoding issue"], confidence: 45 },
-              { pageNumber: 145, severity: "warning", issues: ["Formatting inconsistency"], confidence: 78 },
-              { pageNumber: 201, severity: "critical", issues: ["Missing text blocks"], confidence: 41 },
-              { pageNumber: 289, severity: "warning", issues: ["Low confidence on decorative elements"], confidence: 69 },
-            ],
           },
         },
         physical: { isbn: "978-1-234-56790-3", price: 699, stock: 28, weight: 650, length: 230, width: 150, height: 35, sku: "RM-TA-001" },
@@ -2194,32 +2188,27 @@ function SimplifiedLanguageVariantCard({
                   {/* Workflow steps */}
                   <div className="space-y-2">
                     <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">Digital Approval Status</p>
-                    <div className="flex flex-wrap gap-1">
-                      {["Draft", "Review", "Approved", "Published", "Archived"].map((step) => {
-                        const currentStatus = variant.digital?.status || "Draft";
-                        const isActive = currentStatus === step;
-                        const isDisabled = step === "Published" && !allDigitalChecksPassed;
-                        
-                        return (
-                          <button
-                            key={step}
-                            type="button"
-                            disabled={isDisabled && currentStatus !== "Published"}
-                            onClick={() => onUpdate({ digital: { ...variant.digital!, status: step as any } })}
-                            className={`px-2.5 py-1.5 rounded text-[11px] font-bold border flex items-center gap-1 transition-all cursor-pointer ${
-                              isActive
-                                ? "bg-[#002045] text-white border-[#002045]"
-                                : isDisabled
-                                ? "bg-slate-50 text-slate-300 border-slate-200 cursor-not-allowed"
-                                : "bg-white hover:bg-slate-50 text-slate-600 border-slate-200"
-                            }`}
-                            title={isDisabled ? "Resolve all checklist items to publish" : ""}
-                          >
-                            {isActive && <CheckCircle2 className="w-3.5 h-3.5 text-white" />}
-                            {step}
-                          </button>
-                        );
-                      })}
+                    <div className="flex items-center gap-2 mt-1">
+                      <select
+                        value={variant.digital?.status || "Draft"}
+                        onChange={(e) => onUpdate({ digital: { ...variant.digital!, status: e.target.value as any } })}
+                        className="flex-1 px-3 py-2 bg-white border border-slate-200 rounded-md text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[var(--color-institutional-blue)]/20"
+                      >
+                        {["Draft", "Review", "Approved", "Published", "Archived"].map((step) => {
+                          const isDisabled = step === "Published" && !allDigitalChecksPassed;
+                          return (
+                            <option key={step} value={step} disabled={isDisabled}>
+                              {step}
+                            </option>
+                          );
+                        })}
+                      </select>
+                      <button
+                        onClick={() => alert(`Applied Digital Status: ${variant.digital?.status || "Draft"}`)}
+                        className="px-4 py-2 bg-[var(--color-institutional-blue)] text-white rounded-md text-sm font-medium hover:bg-opacity-90 transition-all"
+                      >
+                        Apply
+                      </button>
                     </div>
                     {!allDigitalChecksPassed && (variant.digital?.status === "Review" || variant.digital?.status === "Draft") && (
                       <p className="text-[10px] text-amber-600 font-medium leading-none mt-1">
@@ -2306,16 +2295,7 @@ function SimplifiedLanguageVariantCard({
                                 fileName: file.name,
                                 fileSize: parseFloat((file.size / (1024 * 1024)).toFixed(1)),
                                 uploadedAt: new Date().toISOString(),
-                                ocrConfidence: 87,
                                 totalPages: 248,
-                                reviewedPages: 0,
-                                healthScore: "moderate",
-                                pageIssues: [
-                                  { pageNumber: 12, severity: "warning", issues: ["Low OCR confidence"], confidence: 68 },
-                                  { pageNumber: 45, severity: "critical", issues: ["Script recognition failed", "Missing text"], confidence: 42 },
-                                  { pageNumber: 89, severity: "warning", issues: ["Formatting inconsistency"], confidence: 74 },
-                                  { pageNumber: 156, severity: "critical", issues: ["Encoding issue"], confidence: 38 },
-                                ],
                               };
                               onUpdate({ digital: { ...variant.digital!, isbn: variant.digital?.isbn || "", ebookProcessing: mockProcessing } });
                             }
@@ -2353,87 +2333,15 @@ function SimplifiedLanguageVariantCard({
                         </span>
                       </div>
 
-                      {/* Processing Quality Dashboard */}
-                      <div className="grid grid-cols-4 gap-3">
-                        <div className="p-3 bg-card border border-border rounded-lg">
-                          <div className="text-xs text-muted-foreground mb-1">OCR Confidence</div>
-                          <div className={`text-xl font-bold ${
-                            variant.digital.ebookProcessing.ocrConfidence! >= 90
-                              ? "text-[var(--color-success-green)]"
-                              : variant.digital.ebookProcessing.ocrConfidence! >= 70
-                              ? "text-amber-600"
-                              : "text-destructive"
-                          }`}>
-                            {variant.digital.ebookProcessing.ocrConfidence}%
-                          </div>
-                        </div>
-                        <div className="p-3 bg-card border border-border rounded-lg">
-                          <div className="text-xs text-muted-foreground mb-1">Pages Reviewed</div>
-                          <div className="text-xl font-bold">
-                            {variant.digital.ebookProcessing.reviewedPages}/{variant.digital.ebookProcessing.totalPages}
-                          </div>
-                        </div>
-                        <div className="p-3 bg-card border border-border rounded-lg">
-                          <div className="text-xs text-muted-foreground mb-1">Issues Found</div>
-                          <div className="text-xl font-bold text-amber-600">
-                            {variant.digital.ebookProcessing.pageIssues?.length || 0}
-                          </div>
-                        </div>
-                        <div className="p-3 bg-card border border-border rounded-lg">
-                          <div className="text-xs text-muted-foreground mb-1">Health Score</div>
-                          <div className={`text-xs font-semibold uppercase ${
-                            variant.digital.ebookProcessing.healthScore === "good"
-                              ? "text-[var(--color-success-green)]"
-                              : variant.digital.ebookProcessing.healthScore === "moderate"
-                              ? "text-amber-600"
-                              : "text-destructive"
-                          }`}>
-                            {variant.digital.ebookProcessing.healthScore}
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Issue Summary */}
-                      {variant.digital.ebookProcessing.pageIssues && variant.digital.ebookProcessing.pageIssues.length > 0 && (
-                        <div className="p-4 bg-amber-50 border border-amber-200 rounded-lg">
-                          <div className="flex items-center gap-2 mb-2">
-                            <AlertTriangle className="w-4 h-4 text-amber-600" />
-                            <span className="text-sm font-semibold text-amber-900">Pages Requiring Attention</span>
-                          </div>
-                          <div className="space-y-1.5">
-                            {variant.digital.ebookProcessing.pageIssues.slice(0, 3).map((issue, idx) => (
-                              <div key={idx} className="flex items-center justify-between text-xs">
-                                <div className="flex items-center gap-2">
-                                  {issue.severity === "critical" ? (
-                                    <XCircle className="w-3.5 h-3.5 text-destructive" />
-                                  ) : (
-                                    <AlertTriangle className="w-3.5 h-3.5 text-amber-600" />
-                                  )}
-                                  <span className="text-amber-900">Page {issue.pageNumber}: {issue.issues[0]}</span>
-                                </div>
-                                <span className="text-amber-700">{issue.confidence}%</span>
-                              </div>
-                            ))}
-                            {variant.digital.ebookProcessing.pageIssues.length > 3 && (
-                              <div className="text-xs text-amber-700 mt-2">
-                                +{variant.digital.ebookProcessing.pageIssues.length - 3} more issues
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      )}
-
                       {/* Actions */}
-                      <div className="flex items-center gap-3">
-                        {onOpenReviewWorkspace && (
-                          <button
-                            onClick={onOpenReviewWorkspace}
-                            className="flex-1 px-4 py-2.5 bg-[var(--color-institutional-blue)] text-white rounded-lg hover:opacity-90 transition-all font-medium text-sm flex items-center justify-center gap-2"
-                          >
-                            <LayoutGrid className="w-4 h-4" />
-                            Open Review Workspace
-                          </button>
-                        )}
+                      <div className="flex items-center gap-3 mt-4">
+                        <button
+                          onClick={() => alert("Opening eBook Preview...")}
+                          className="flex-1 px-4 py-2.5 bg-[var(--color-institutional-blue)] text-white rounded-lg hover:opacity-90 transition-all font-medium text-sm flex items-center justify-center gap-2"
+                        >
+                          <FileText className="w-4 h-4" />
+                          Preview eBook
+                        </button>
                         <button
                           onClick={() => {
                             if (confirm("Are you sure you want to remove this eBook file?")) {
@@ -2480,32 +2388,27 @@ function SimplifiedLanguageVariantCard({
                   {/* Workflow steps */}
                   <div className="space-y-2">
                     <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">Physical Approval Status</p>
-                    <div className="flex flex-wrap gap-1">
-                      {["Draft", "Review", "Approved", "Published", "Archived"].map((step) => {
-                        const currentStatus = variant.physical?.status || "Draft";
-                        const isActive = currentStatus === step;
-                        const isDisabled = step === "Published" && !allPhysicalChecksPassed;
-                        
-                        return (
-                          <button
-                            key={step}
-                            type="button"
-                            disabled={isDisabled && currentStatus !== "Published"}
-                            onClick={() => onUpdate({ physical: { ...variant.physical!, status: step as any } })}
-                            className={`px-2.5 py-1.5 rounded text-[11px] font-bold border flex items-center gap-1 transition-all cursor-pointer ${
-                              isActive
-                                ? "bg-[#002045] text-white border-[#002045]"
-                                : isDisabled
-                                ? "bg-slate-50 text-slate-300 border-slate-200 cursor-not-allowed"
-                                : "bg-white hover:bg-slate-50 text-slate-600 border-slate-200"
-                            }`}
-                            title={isDisabled ? "Resolve all checklist items to publish" : ""}
-                          >
-                            {isActive && <CheckCircle2 className="w-3.5 h-3.5 text-white" />}
-                            {step}
-                          </button>
-                        );
-                      })}
+                    <div className="flex items-center gap-2 mt-1">
+                      <select
+                        value={variant.physical?.status || "Draft"}
+                        onChange={(e) => onUpdate({ physical: { ...variant.physical!, status: e.target.value as any } })}
+                        className="flex-1 px-3 py-2 bg-white border border-slate-200 rounded-md text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[var(--color-institutional-blue)]/20"
+                      >
+                        {["Draft", "Review", "Approved", "Published", "Archived"].map((step) => {
+                          const isDisabled = step === "Published" && !allPhysicalChecksPassed;
+                          return (
+                            <option key={step} value={step} disabled={isDisabled}>
+                              {step}
+                            </option>
+                          );
+                        })}
+                      </select>
+                      <button
+                        onClick={() => alert(`Applied Physical Status: ${variant.physical?.status || "Draft"}`)}
+                        className="px-4 py-2 bg-[var(--color-institutional-blue)] text-white rounded-md text-sm font-medium hover:bg-opacity-90 transition-all"
+                      >
+                        Apply
+                      </button>
                     </div>
                     {!allPhysicalChecksPassed && (variant.physical?.status === "Review" || variant.physical?.status === "Draft") && (
                       <p className="text-[10px] text-amber-600 font-medium leading-none mt-1">
@@ -2661,6 +2564,25 @@ function SimplifiedLanguageVariantCard({
                         />
                       </div>
                     </div>
+                    {/* Soft Cover Dimensions & Weight */}
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mt-3">
+                      <div>
+                        <label className="block text-xs font-medium mb-1 text-slate-700">Weight (g)</label>
+                        <input type="number" value={variant.physical.softCoverWeight ?? 0} onChange={(e) => onUpdate({ physical: { ...variant.physical!, softCoverWeight: parseInt(e.target.value) || 0 } })} className="w-full px-3 py-2 bg-white border border-[#CBD5E1] rounded-md text-sm focus:outline-none" />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium mb-1 text-slate-700">Length (mm)</label>
+                        <input type="number" value={variant.physical.softCoverLength ?? 0} onChange={(e) => onUpdate({ physical: { ...variant.physical!, softCoverLength: parseInt(e.target.value) || 0 } })} className="w-full px-3 py-2 bg-white border border-[#CBD5E1] rounded-md text-sm focus:outline-none" />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium mb-1 text-slate-700">Width (mm)</label>
+                        <input type="number" value={variant.physical.softCoverWidth ?? 0} onChange={(e) => onUpdate({ physical: { ...variant.physical!, softCoverWidth: parseInt(e.target.value) || 0 } })} className="w-full px-3 py-2 bg-white border border-[#CBD5E1] rounded-md text-sm focus:outline-none" />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium mb-1 text-slate-700">Height (mm)</label>
+                        <input type="number" value={variant.physical.softCoverHeight ?? 0} onChange={(e) => onUpdate({ physical: { ...variant.physical!, softCoverHeight: parseInt(e.target.value) || 0 } })} className="w-full px-3 py-2 bg-white border border-[#CBD5E1] rounded-md text-sm focus:outline-none" />
+                      </div>
+                    </div>
                   </div>
                 )}
 
@@ -2718,21 +2640,30 @@ function SimplifiedLanguageVariantCard({
                         />
                       </div>
                     </div>
+                    {/* Hard Cover Dimensions & Weight */}
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mt-3">
+                      <div>
+                        <label className="block text-xs font-medium mb-1 text-amber-900">Weight (g)</label>
+                        <input type="number" value={variant.physical.hardCoverWeight ?? 0} onChange={(e) => onUpdate({ physical: { ...variant.physical!, hardCoverWeight: parseInt(e.target.value) || 0 } })} className="w-full px-3 py-2 bg-white border border-amber-300 rounded-md text-sm focus:outline-none" />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium mb-1 text-amber-900">Length (mm)</label>
+                        <input type="number" value={variant.physical.hardCoverLength ?? 0} onChange={(e) => onUpdate({ physical: { ...variant.physical!, hardCoverLength: parseInt(e.target.value) || 0 } })} className="w-full px-3 py-2 bg-white border border-amber-300 rounded-md text-sm focus:outline-none" />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium mb-1 text-amber-900">Width (mm)</label>
+                        <input type="number" value={variant.physical.hardCoverWidth ?? 0} onChange={(e) => onUpdate({ physical: { ...variant.physical!, hardCoverWidth: parseInt(e.target.value) || 0 } })} className="w-full px-3 py-2 bg-white border border-amber-300 rounded-md text-sm focus:outline-none" />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium mb-1 text-amber-900">Height (mm)</label>
+                        <input type="number" value={variant.physical.hardCoverHeight ?? 0} onChange={(e) => onUpdate({ physical: { ...variant.physical!, hardCoverHeight: parseInt(e.target.value) || 0 } })} className="w-full px-3 py-2 bg-white border border-amber-300 rounded-md text-sm focus:outline-none" />
+                      </div>
+                    </div>
                   </div>
                 )}
 
-                {/* Weight & Stock Summary */}
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium mb-2">Weight (grams)</label>
-                    <input
-                      type="number"
-                      value={variant.physical.weight}
-                      onChange={(e) => onUpdate({ physical: { ...variant.physical!, weight: parseInt(e.target.value) || 0 } })}
-                      placeholder="450"
-                      className="w-full px-3 py-2 bg-card border border-border rounded-md text-sm"
-                    />
-                  </div>
+                {/* Combined Stock Summary */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium mb-2">Combined Physical Stock</label>
                     <input
@@ -2744,34 +2675,6 @@ function SimplifiedLanguageVariantCard({
                       disabled
                       readOnly
                       className="w-full px-3 py-2 bg-muted border border-border rounded-md text-sm font-bold text-slate-700"
-                    />
-                  </div>
-                </div>
-
-                {/* Dimensions (mm) */}
-                <div className="mt-4">
-                  <label className="block text-sm font-medium mb-2">Dimensions (mm)</label>
-                  <div className="grid grid-cols-3 gap-4">
-                    <input
-                      type="number"
-                      value={variant.physical.length}
-                      onChange={(e) => onUpdate({ physical: { ...variant.physical!, length: parseInt(e.target.value) || 0 } })}
-                      placeholder="Length: 210"
-                      className="px-3 py-2 bg-card border border-border rounded-md text-sm"
-                    />
-                    <input
-                      type="number"
-                      value={variant.physical.width}
-                      onChange={(e) => onUpdate({ physical: { ...variant.physical!, width: parseInt(e.target.value) || 0 } })}
-                      placeholder="Width: 140"
-                      className="px-3 py-2 bg-card border border-border rounded-md text-sm"
-                    />
-                    <input
-                      type="number"
-                      value={variant.physical.height}
-                      onChange={(e) => onUpdate({ physical: { ...variant.physical!, height: parseInt(e.target.value) || 0 } })}
-                      placeholder="Height: 25"
-                      className="px-3 py-2 bg-card border border-border rounded-md text-sm"
                     />
                   </div>
                 </div>
