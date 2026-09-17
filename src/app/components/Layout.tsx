@@ -20,7 +20,8 @@ import {
   Sparkles,
   Shield,
   Lock,
-  FileText
+  FileText,
+  Mail
 } from "lucide-react";
 
 const navigation = [
@@ -40,7 +41,7 @@ const navigation = [
   { name: "Role Management", path: "/rbac", icon: Shield },
   { name: "Audit Logs", path: "/audit-logs", icon: FileText },
   { name: "Push Notifications", path: "/notifications", icon: Bell },
-  // { name: "Consignment", path: "/consignment", icon: Truck },
+  { name: "Email Campaigns", path: "/campaigns", icon: Mail },
 ];
 
 const defaultAdmins = [
@@ -66,7 +67,8 @@ const defaultAdmins = [
       "Finance",
       "Role Management",
       "Audit Logs",
-      "Push Notifications"
+      "Push Notifications",
+      "Email Campaigns"
     ]
   },
   {
@@ -75,7 +77,7 @@ const defaultAdmins = [
     email: "priya.catalog@amritabooks.com",
     role: "Catalog Manager",
     status: "Active",
-    allowedModules: ["Dashboard", "Catalog", "Spotlight Banners", "Authors", "Push Notifications"]
+    allowedModules: ["Dashboard", "Catalog", "Spotlight Banners", "Authors", "Push Notifications", "Email Campaigns"]
   },
   {
     id: "admin-3",
@@ -98,16 +100,28 @@ export function Layout() {
       if (saved) {
         try {
           loadedAdmins = JSON.parse(saved);
-          // Auto-migration: ensure Push Notifications is in allowedModules for existing profiles
+          // Auto-migration: ensure Push Notifications and Email Campaigns are in allowedModules
           let migrated = false;
           loadedAdmins = loadedAdmins.map((adm: any) => {
-            if (adm.role === "Super Admin" && !adm.allowedModules.includes("Push Notifications")) {
-              adm.allowedModules.push("Push Notifications");
-              migrated = true;
+            if (adm.role === "Super Admin") {
+              if (!adm.allowedModules.includes("Push Notifications")) {
+                adm.allowedModules.push("Push Notifications");
+                migrated = true;
+              }
+              if (!adm.allowedModules.includes("Email Campaigns")) {
+                adm.allowedModules.push("Email Campaigns");
+                migrated = true;
+              }
             }
-            if (adm.role === "Catalog Manager" && !adm.allowedModules.includes("Push Notifications")) {
-              adm.allowedModules.push("Push Notifications");
-              migrated = true;
+            if (adm.role === "Catalog Manager") {
+              if (!adm.allowedModules.includes("Push Notifications")) {
+                adm.allowedModules.push("Push Notifications");
+                migrated = true;
+              }
+              if (!adm.allowedModules.includes("Email Campaigns")) {
+                adm.allowedModules.push("Email Campaigns");
+                migrated = true;
+              }
             }
             return adm;
           });

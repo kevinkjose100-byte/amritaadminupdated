@@ -17,6 +17,7 @@ import { SpotlightBannerManagement } from "./components/pages/SpotlightBannerMan
 import { RoleManagement } from "./components/pages/RoleManagement";
 import { AuditLogs } from "./components/pages/AuditLogs";
 import { PushNotifications } from "./components/pages/PushNotifications";
+import { EmailCampaigns } from "./components/pages/EmailCampaigns";
 
 export const router = createBrowserRouter([
   {
@@ -40,6 +41,7 @@ export const router = createBrowserRouter([
       { path: "audit-logs", Component: AuditLogs },
       { path: "notifications", Component: PushNotifications },
       // { path: "consignment", Component: ConsignmentManagement },
+      { path: "campaigns", Component: EmailCampaigns },
     ],
   },
 ]);
